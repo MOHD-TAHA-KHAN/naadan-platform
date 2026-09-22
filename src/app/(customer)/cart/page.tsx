@@ -2,6 +2,7 @@ import { auth } from "../../../../auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
+import { CustomerFooter } from "@/components/customer/footer"
 import { CartItemRow } from "@/components/customer/cart-item-row"
 import { CheckoutForm } from "@/components/customer/checkout-form"
 import type { Metadata } from "next"
@@ -159,6 +160,7 @@ export default async function CartPage() {
           )}
         </div>
       </main>
+      <CustomerFooter />
     </div>
   )
 }

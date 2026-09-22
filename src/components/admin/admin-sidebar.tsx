@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { LogoutButton } from "@/components/auth/logout-button"
 
 interface NavItem {
@@ -15,6 +16,7 @@ const navItems: NavItem[] = [
   { href: "/admin/delivery", label: "Delivery Tracking", icon: "local_shipping" },
   { href: "/admin/inventory", label: "Inventory", icon: "inventory_2" },
   { href: "/admin/menu-toggles", label: "Menu Toggles", icon: "toggle_on" },
+  { href: "/admin/settings", label: "Settings", icon: "settings" },
 ]
 
 interface AdminSidebarProps {
@@ -27,8 +29,14 @@ export function AdminSidebar({ activePath, staffName }: AdminSidebarProps) {
     <aside className="fixed left-0 top-0 h-full w-64 bg-[#033921] text-white z-50 flex flex-col pt-4 pb-4 shadow-[0_4px_20px_-2px_rgba(3,57,33,0.25)]">
       {/* Brand */}
       <div className="px-4 mb-6 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#fdf9f1] flex items-center justify-center shadow-sm">
-          <span className="material-symbols-outlined text-[#033921] text-[22px]">soup_kitchen</span>
+        <div className="w-10 h-10 rounded-xl bg-[#fdf9f1] flex items-center justify-center shadow-sm overflow-hidden">
+          <Image
+            src="/brand/Naadan-logo.jpg"
+            alt="Naadan"
+            width={40}
+            height={40}
+            className="w-10 h-10 object-contain"
+          />
         </div>
         <div className="flex flex-col">
           <span

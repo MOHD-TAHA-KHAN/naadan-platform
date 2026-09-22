@@ -31,13 +31,13 @@ export const authConfig: NextAuthConfig = {
 
       if (isAdminRoute) {
         if (!isLoggedIn) return false
-        if (auth?.user?.role !== "ADMIN") return Response.redirect(new URL("/menu", nextUrl))
+        if (auth?.user?.role !== "ADMIN") return Response.redirect(new URL("/", nextUrl))
         return true
       }
 
       if (isAuthRoute && isLoggedIn) {
         if (auth?.user?.role === "ADMIN") return Response.redirect(new URL("/admin", nextUrl))
-        return Response.redirect(new URL("/menu", nextUrl))
+        return Response.redirect(new URL("/", nextUrl))
       }
 
       return true

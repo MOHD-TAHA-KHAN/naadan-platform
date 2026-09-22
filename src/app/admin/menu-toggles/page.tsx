@@ -10,15 +10,38 @@ export const metadata: Metadata = { title: "Menu Toggles | Naadan Admin" }
 export default async function MenuTogglesPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  if (session.user.role !== "ADMIN") redirect("/menu")
+  if (session.user.role !== "ADMIN") redirect("/")
 
   const categoriesWithItems = await prisma.category.findMany({
-    include: { menuItems: { orderBy: { name: "asc" } } },
+    include: {
+      menuItems: {
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          imageUrl: true,
+          available: true,
+          categoryId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
     orderBy: { name: "asc" },
   })
 
-  const totalItems = categoriesWithItems.flatMap((c) => c.menuItems).length
-  const availableItems = categoriesWithItems.flatMap((c) => c.menuItems).filter((i) => i.available).length
+  const categoriesWithTransformedItems = categoriesWithItems.map((category) => ({
+    ...category,
+    menuItems: category.menuItems.map((item) => ({
+      ...item,
+      price: Number(item.price),
+    })),
+  }))
+
+  const totalItems = categoriesWithTransformedItems.flatMap((c) => c.menuItems).length
+  const availableItems = categoriesWithTransformedItems.flatMap((c) => c.menuItems).filter((i) => i.available).length
   const soldOutItems = totalItems - availableItems
 
   return (
@@ -83,7 +106,7 @@ export default async function MenuTogglesPage() {
             </div>
           </div>
 
-          {categoriesWithItems.map((category) => (
+          {categoriesWithTransformedItems.map((category) => (
             <div key={category.id} className="bg-[#ffffff] rounded-xl shadow-sm border border-[#f1ede6] overflow-hidden">
               <div className="px-5 py-3 border-b border-[#f1ede6] bg-[#f7f3eb] flex items-center justify-between">
                 <h2 className="font-bold text-sm text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>

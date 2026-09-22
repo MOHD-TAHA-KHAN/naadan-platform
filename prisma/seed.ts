@@ -127,6 +127,38 @@ async function main() {
     }
   }
 
+  // Inventory items
+  const inventoryItems = [
+    { name: "Rice (Kaima)", unit: "kg", current: 50, buffer: 20, supplier: "Wayanad Rice Mills" },
+    { name: "Chicken (Country)", unit: "kg", current: 30, buffer: 15, supplier: "Local Farms" },
+    { name: "Mutton", unit: "kg", current: 25, buffer: 10, supplier: "Premium Meat House" },
+    { name: "Coconut Oil", unit: "litres", current: 40, buffer: 15, supplier: "Kozhikode Oils" },
+    { name: "Shallots", unit: "kg", current: 20, buffer: 8, supplier: "Vegetable Market" },
+    { name: "Curry Leaves", unit: "bunches", current: 15, buffer: 5, supplier: "Local Gardens" },
+    { name: "Ginger", unit: "kg", current: 10, buffer: 4, supplier: "Spice Market" },
+    { name: "Garlic", unit: "kg", current: 12, buffer: 5, supplier: "Spice Market" },
+    { name: "Turmeric Powder", unit: "kg", current: 8, buffer: 3, supplier: "Spice Market" },
+    { name: "Black Pepper", unit: "kg", current: 6, buffer: 2, supplier: "Wayanad Spices" },
+  ]
+
+  for (const item of inventoryItems) {
+    await prisma.inventoryItem.upsert({
+      where: { name: item.name },
+      update: {
+        unit: item.unit,
+        current: item.current,
+        buffer: item.buffer,
+        supplier: item.supplier,
+        status: item.current === 0 ? "OUT_OF_STOCK" : item.current < item.buffer ? "CRITICAL" : item.current < item.buffer * 1.5 ? "LOW_STOCK" : "IN_STOCK",
+      },
+      create: {
+        ...item,
+        status: item.current === 0 ? "OUT_OF_STOCK" : item.current < item.buffer ? "CRITICAL" : item.current < item.buffer * 1.5 ? "LOW_STOCK" : "IN_STOCK",
+      },
+    })
+  }
+  console.log("📦 Inventory items seeded")
+
   console.log("✅ Seed complete.")
 }
 

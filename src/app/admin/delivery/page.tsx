@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Delivery Tracking | Naadan Admin" }
 export default async function DeliveryTrackingPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  if (session.user.role !== "ADMIN") redirect("/menu")
+  if (session.user.role !== "ADMIN") redirect("/")
 
   const outForDelivery = await prisma.order.findMany({
     where: { status: "OUT_FOR_DELIVERY" },

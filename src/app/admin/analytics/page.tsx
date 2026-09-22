@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Analytics | Naadan Admin" }
 export default async function AdminAnalyticsPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  if (session.user.role !== "ADMIN") redirect("/menu")
+  if (session.user.role !== "ADMIN") redirect("/")
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7)

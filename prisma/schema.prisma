@@ -27,9 +27,13 @@ model User {
   name      String
   email     String     @unique
   password  String
+  image     String?
+  phone     String?
+  address   String?
   role      Role       @default(USER)
   cartItems CartItem[]
   orders    Order[]
+  reviews   Review[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -78,6 +82,7 @@ model Order {
   userId     String
   user       User        @relation(fields: [userId], references: [id])
   items      OrderItem[]
+  review     Review?
   totalPrice Decimal     @db.Decimal(10, 2)
   status     OrderStatus @default(PENDING)
   address    String?
@@ -101,4 +106,27 @@ model OrderItem {
 
   @@index([orderId])
   @@index([menuItemId])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  unit      String
+  current   Float
+  buffer    Float
+  supplier  String?
+  status    String   @default("IN_STOCK")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 }

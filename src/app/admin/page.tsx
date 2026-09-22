@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Admin Dashboard | Naadan" }
 export default async function AdminDashboardPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  if (session.user.role !== "ADMIN") redirect("/menu")
+  if (session.user.role !== "ADMIN") redirect("/")
 
   const [totalUsers, totalOrders, totalMenuItems, pendingOrders, recentOrders] = await Promise.all([
     prisma.user.count(),

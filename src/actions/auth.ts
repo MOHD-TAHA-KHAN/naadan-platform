@@ -24,7 +24,7 @@ export async function loginAction(
 
   const { email, password } = parsed.data
 
-  let destination = "/menu"
+  let destination = "/"
   try {
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -78,7 +78,7 @@ export async function signupAction(
   }
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/menu" })
+    await signIn("credentials", { email, password, redirectTo: "/" })
     return { success: true }
   } catch (error) {
     if (error instanceof AuthError) {

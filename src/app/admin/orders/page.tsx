@@ -27,7 +27,7 @@ const BORDER_COLORS: Record<string, string> = {
 export default async function AdminOrdersPage() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  if (session.user.role !== "ADMIN") redirect("/menu")
+  if (session.user.role !== "ADMIN") redirect("/")
 
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },

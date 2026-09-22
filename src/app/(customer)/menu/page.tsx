@@ -2,6 +2,7 @@ import { auth } from "../../../../auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
+import { CustomerFooter } from "@/components/customer/footer"
 import { AddToCartButton } from "@/components/customer/add-to-cart-button"
 import { CategoryFilter } from "@/components/customer/category-filter"
 import Image from "next/image"
@@ -227,6 +228,7 @@ export default async function MenuPage({
           </div>
         </section>
       </main>
+      <CustomerFooter />
     </div>
   )
 }
