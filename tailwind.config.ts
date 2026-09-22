@@ -73,8 +73,8 @@ const config: Config = {
         margin: "2rem",
       },
       fontFamily: {
-        "playfair": ["Playfair Display", "serif"],
-        "inter": ["Inter", "sans-serif"],
+        "playfair": ["var(--font-playfair)", "serif"],
+        "inter": ["var(--font-inter)", "sans-serif"],
       },
       fontSize: {
         "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.05em", fontWeight: "600" }],

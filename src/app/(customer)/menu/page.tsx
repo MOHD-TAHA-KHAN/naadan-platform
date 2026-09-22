@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { AddToCartButton } from "@/components/customer/add-to-cart-button"
 import { CategoryFilter } from "@/components/customer/category-filter"
+import Image from "next/image"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Menu | Naadan" }
@@ -88,11 +89,12 @@ export default async function MenuPage({
 
             <div className="relative hidden lg:block">
               <div className="w-full h-80 rounded-2xl overflow-hidden shadow-xl bg-[#ebe8e0]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80"
                   alt="Authentic Kerala banana leaf feast"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#002211]/70 via-transparent to-transparent flex items-end p-6">
                   <div>
@@ -172,11 +174,12 @@ export default async function MenuPage({
                     <div className="flex flex-col gap-3">
                       <div className="relative w-full h-52 rounded-xl overflow-hidden bg-[#f1ede6]">
                         {item.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={item.imageUrl}
                             alt={item.name}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                            fill
+                            className="object-cover hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">

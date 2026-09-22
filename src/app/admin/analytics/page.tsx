@@ -43,16 +43,19 @@ export default async function AdminAnalyticsPage() {
     prisma.order.groupBy({ by: ["status"], _count: { status: true } }),
   ])
 
-  // Fetch top item names
-  const topItemsWithNames = await Promise.all(
-    topItems.map(async (item) => {
-      const menuItem = await prisma.menuItem.findUnique({
-        where: { id: item.menuItemId },
-        select: { name: true },
-      })
-      return { name: menuItem?.name ?? "Unknown", quantity: item._sum.quantity ?? 0 }
-    })
-  )
+  // Fetch top item names in a single query
+  const menuItemIds = topItems.map(item => item.menuItemId)
+  const menuItems = await prisma.menuItem.findMany({
+    where: { id: { in: menuItemIds } },
+    select: { id: true, name: true },
+  })
+  
+  const menuItemMap = new Map(menuItems.map(mi => [mi.id, mi.name]))
+  
+  const topItemsWithNames = topItems.map(item => ({
+    name: menuItemMap.get(item.menuItemId) ?? "Unknown",
+    quantity: item._sum.quantity ?? 0
+  }))
 
   const maxQty = Math.max(...topItemsWithNames.map((i) => i.quantity), 1)
 

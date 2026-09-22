@@ -24,8 +24,7 @@ export async function addToCart(menuItemId: string) {
       })
     }
 
-    revalidatePath("/menu")
-    revalidatePath("/cart")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "Failed to add to cart." }
@@ -38,7 +37,7 @@ export async function removeFromCart(cartItemId: string) {
 
   try {
     await prisma.cartItem.delete({ where: { id: cartItemId } })
-    revalidatePath("/cart")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "Failed to remove item." }
@@ -55,7 +54,7 @@ export async function updateCartQty(cartItemId: string, quantity: number) {
     } else {
       await prisma.cartItem.update({ where: { id: cartItemId }, data: { quantity } })
     }
-    revalidatePath("/cart")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "Failed to update quantity." }
@@ -96,11 +95,9 @@ export async function placeOrder(address: string) {
       },
     })
 
-    // Clear cart after order
     await prisma.cartItem.deleteMany({ where: { userId: session.user.id } })
 
-    revalidatePath("/cart")
-    revalidatePath("/admin/orders")
+    revalidatePath("/")
     return { success: true, orderId: order.id }
   } catch {
     return { error: "Failed to place order." }

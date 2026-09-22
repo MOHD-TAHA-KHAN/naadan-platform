@@ -2,6 +2,7 @@
 
 import { useTransition } from "react"
 import { removeFromCart, updateCartQty } from "@/actions/cart"
+import Image from "next/image"
 
 interface CartItemRowProps {
   cartItem: {
@@ -22,13 +23,14 @@ export function CartItemRow({ cartItem }: CartItemRowProps) {
 
   return (
     <div className="flex items-center gap-4 pt-4 first:pt-0">
-      <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#f1ede6] shrink-0">
+      <div className="w-16 h-16 rounded-xl overflow-hidden bg-[#f1ede6] shrink-0 relative">
         {cartItem.menuItem.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={cartItem.menuItem.imageUrl}
             alt={cartItem.menuItem.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="64px"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

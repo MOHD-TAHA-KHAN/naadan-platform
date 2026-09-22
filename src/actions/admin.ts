@@ -19,7 +19,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
       where: { id: orderId },
       data: { status: status as never },
     })
-    revalidatePath("/admin/orders")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "Failed to update order status." }
@@ -33,8 +33,7 @@ export async function toggleMenuItemAvailability(itemId: string, available: bool
       where: { id: itemId },
       data: { available },
     })
-    revalidatePath("/admin/menu-toggles")
-    revalidatePath("/menu")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "Failed to toggle item." }
