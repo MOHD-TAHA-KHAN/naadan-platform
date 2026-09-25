@@ -14,14 +14,23 @@ export default async function CartPage() {
   if (!session?.user) redirect("/login")
   if (session.user.role === "ADMIN") redirect("/admin")
 
-  const cartItems = await prisma.cartItem.findMany({
+  const rawCartItems = await prisma.cartItem.findMany({
     where: { userId: session.user.id },
     include: { menuItem: true },
     orderBy: { createdAt: "asc" },
   })
 
+  // Convert Prisma Decimal price to standard number before passing to Client Components
+  const cartItems = rawCartItems.map((ci) => ({
+    ...ci,
+    menuItem: {
+      ...ci.menuItem,
+      price: Number(ci.menuItem.price),
+    },
+  }))
+
   const subtotal = cartItems.reduce(
-    (sum, ci) => sum + Number(ci.menuItem.price) * ci.quantity,
+    (sum, ci) => sum + ci.menuItem.price * ci.quantity,
     0
   )
   const deliveryFee = subtotal > 0 ? 40 : 0

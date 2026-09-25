@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { removeFromCart, updateCartQty } from "../../actions/cart"
+import { removeFromCart, updateCartQty } from "@/actions/cart"
 import Image from "next/image"
 
 interface CartItemRowProps {
@@ -12,7 +12,7 @@ interface CartItemRowProps {
       id: string
       name: string
       description: string | null
-      price: { toString(): string }
+      price: number | { toString(): string }
       imageUrl: string | null
     }
   }
