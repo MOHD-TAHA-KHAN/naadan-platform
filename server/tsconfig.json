@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["esnext"],
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/db": ["./src/db"],
+      "@/db/*": ["./src/db/*"],
+      "@/api": ["./src/api"],
+      "@/api/*": ["./src/api/*"],
+      "@/ws": ["./src/ws"],
+      "@/ws/*": ["./src/ws/*"],
+      "@/types": ["./src/types"],
+      "@/types/*": ["./src/types/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -23,19 +23,34 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/components/ui": ["./client/src/components/ui"],
+      "@/components/ui/*": ["./client/src/components/ui/*"],
+      "@/components/features": ["./client/src/components/features"],
+      "@/components/features/*": ["./client/src/components/features/*"],
+      "@/hooks": ["./client/src/hooks"],
+      "@/hooks/*": ["./client/src/hooks/*"],
+      "@/utils": ["./client/src/utils"],
+      "@/utils/*": ["./client/src/utils/*"],
+      "@server/*": ["./server/src/*"],
+      "@/*": ["./client/src/*"]
     }
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "auth.ts",
+    "auth.config.ts",
+    "middleware.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "client/**/*.ts",
+    "client/**/*.tsx",
+    "server/**/*.ts",
+    "prisma/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next",
+    "client/.next",
+    "server/.next"
   ]
 }

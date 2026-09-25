@@ -1,0 +1,14 @@
+{
+  "name": "@naadan/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "^5.1.0"
+  },
+  "scripts": {
+  "postinstall": "prisma generate --schema=./server/prisma/schema.prisma",
+  "db:push": "prisma db push --schema=./server/prisma/schema.prisma",
+  "db:studio": "prisma studio --schema=./server/prisma/schema.prisma"
+}
+}
