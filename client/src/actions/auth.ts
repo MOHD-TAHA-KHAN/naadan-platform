@@ -91,3 +91,7 @@ export async function signupAction(
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" })
 }
+
+export async function googleSignInAction() {
+  await signIn("google", { redirectTo: "/admin" })
+}
