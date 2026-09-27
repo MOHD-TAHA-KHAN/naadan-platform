@@ -8,6 +8,7 @@ interface CartItemRowProps {
   cartItem: {
     id: string
     quantity: number
+    price?: number
     menuItem: {
       id: string
       name: string

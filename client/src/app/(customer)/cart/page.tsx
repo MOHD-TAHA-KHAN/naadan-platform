@@ -14,22 +14,23 @@ export default async function CartPage() {
   if (!session?.user) redirect("/login")
   if (session.user.role === "ADMIN") redirect("/admin")
 
-  const rawCartItems = await prisma.cartItem.findMany({
+  const cartItems = await prisma.cartItem.findMany({
     where: { userId: session.user.id },
     include: { menuItem: true },
     orderBy: { createdAt: "asc" },
   })
 
   // Convert Prisma Decimal price to standard number before passing to Client Components
-  const cartItems = rawCartItems.map((ci) => ({
+  const serializedItems = cartItems.map((ci) => ({
     ...ci,
+    price: Number((ci as any).price ?? ci.menuItem.price),
     menuItem: {
       ...ci.menuItem,
       price: Number(ci.menuItem.price),
     },
   }))
 
-  const subtotal = cartItems.reduce(
+  const subtotal = serializedItems.reduce(
     (sum, ci) => sum + ci.menuItem.price * ci.quantity,
     0
   )
@@ -39,7 +40,7 @@ export default async function CartPage() {
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
       <CustomerHeader
-        cartCount={cartItems.reduce((s, ci) => s + ci.quantity, 0)}
+        cartCount={serializedItems.reduce((s, ci) => s + ci.quantity, 0)}
         activePage="cart"
         userName={session.user.name}
       />
@@ -86,7 +87,7 @@ export default async function CartPage() {
             </div>
           </div>
 
-          {cartItems.length === 0 ? (
+          {serializedItems.length === 0 ? (
             <div className="text-center py-20">
               <span className="material-symbols-outlined text-[64px] text-[#c0c9c0] block mb-4">shopping_bag</span>
               <h2 className="text-xl font-bold text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
@@ -108,14 +109,14 @@ export default async function CartPage() {
                 <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-bold text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
-                      Your Order ({cartItems.length} {cartItems.length === 1 ? "item" : "items"})
+                      Your Order ({serializedItems.length} {serializedItems.length === 1 ? "item" : "items"})
                     </h2>
                     <a href="/menu" className="text-xs font-semibold text-[#7b5900] hover:underline">
                       + Add more items
                     </a>
                   </div>
                   <div className="flex flex-col gap-4 divide-y divide-[#f1ede6]">
-                    {cartItems.map((ci) => (
+                    {serializedItems.map((ci) => (
                       <CartItemRow key={ci.id} cartItem={ci} />
                     ))}
                   </div>
@@ -140,7 +141,7 @@ export default async function CartPage() {
                     Order Summary
                   </h3>
                   <div className="space-y-3 text-sm">
-                    {cartItems.map((ci) => (
+                    {serializedItems.map((ci) => (
                       <div key={ci.id} className="flex justify-between text-[#414942]">
                         <span className="line-clamp-1">{ci.menuItem.name} × {ci.quantity}</span>
                         <span className="font-medium text-[#002211] shrink-0 ml-2">
