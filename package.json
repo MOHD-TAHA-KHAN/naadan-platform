@@ -8,7 +8,9 @@
     "server"
   ],
   "scripts": {
-    "dev": "npm run dev -w client",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "npm run build -w client",
     "start": "npm run start -w client",
     "typecheck": "tsc --noEmit",
@@ -17,7 +19,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.3",
+    "@prisma/client": "^6.12.0",
     "@supabase/supabase-js": "^2.116.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.1",
@@ -39,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "prisma": "^6.12.0",

@@ -1,167 +1,238 @@
 import { PrismaClient, Role } from "@prisma/client"
 import bcrypt from "bcryptjs"
 import dotenv from "dotenv"
-dotenv.config()
+import fs from "fs"
+import path from "path"
 
+// Load .env from server folder or root folder
+dotenv.config({ path: path.resolve(process.cwd(), ".env") })
+dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") })
 
 const prisma = new PrismaClient()
 
+
+
+// Helper to find the best matching image in a folder
+function findBestImageMatch(categoryFolder: string, itemName: string): string | null {
+  const dirPath = path.join(process.cwd(), "..", "client", "public", "Catalogue image", categoryFolder);
+  
+  if (itemName === "PAYASAM OF THE DAY") return "/Catalogue image/Payasam of the Day.png";
+
+  if (!fs.existsSync(dirPath)) {
+    console.warn(`⚠️ Folder missing: ${categoryFolder}`);
+    return null;
+  }
+
+  const files = fs.readdirSync(dirPath).filter(f => f.match(/\.(jpg|jpeg|png)$/i));
+  if (files.length === 0) return null;
+
+  // Since your files are named perfectly (e.g., "Egg Roast Pothichoru.jpg"), try an exact match first
+  const exactMatch = files.find(f => f.toLowerCase().includes(itemName.toLowerCase()));
+  if (exactMatch) return `/Catalogue image/${categoryFolder}/${exactMatch}`;
+
+  // Fallback to Fuzzy Match if exact match fails
+  const itemWords = itemName.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(' ').filter(w => w.length > 2);
+  let bestMatch = files[0];
+  let highestScore = 0;
+
+  for (const file of files) {
+    const fileWords = file.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(' ').filter(w => w.length > 2);
+    const score = itemWords.filter(word => fileWords.includes(word)).length;
+    
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = file;
+    }
+  }
+
+  return `/Catalogue image/${categoryFolder}/${bestMatch}`;
+}
+
 async function main() {
-  console.log("🌱 Seeding Naadan database...")
+  console.log("🌱 Seeding Naadan database with dynamic images...")
 
   const adminEmail = "admin@naadan.com"
   const hashed = await bcrypt.hash("Test12345", 10)
 
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: adminEmail },
     update: { name: "Naadan Admin", password: hashed, role: Role.ADMIN },
     create: { email: adminEmail, name: "Naadan Admin", password: hashed, role: Role.ADMIN },
   })
-  console.log(`👤 Admin: ${admin.email}`)
 
   const categoriesData = [
     {
-      name: "Signature Biryanis",
+      name: "Naadan Special Rolls",
       items: [
-        {
-          name: "Thalassery Mutton Dum Biryani",
-          description: "Cooked in clay pot, fragrant short-grain Kaima rice, Malabar spices, pickled shallots.",
-          price: 540,
-          imageUrl: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          name: "Kerala Chicken Biryani",
-          description: "Kaima rice layered with slow-cooked chicken in coconut-based masala and fried onions.",
-          price: 420,
-          imageUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
-        },
-      ],
+        { name: "Naadan Chicken Roll", price: 119 },
+        { name: "Naadan Egg Roll", price: 99 },
+      ]
     },
     {
-      name: "Slow-Cooked Curries",
+      name: "Kizhi Specials",
       items: [
-        {
-          name: "Alleppey Kingfish Curry",
-          description: "Fresh Kingfish cuts simmered in freshly extracted coconut milk, tangy raw mango and kudampuli.",
-          price: 480,
-          imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          name: "Nadan Mutton Curry",
-          description: "Slow-braised mutton in a rich dark coconut-shallot masala with crushed black pepper.",
-          price: 460,
-          imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
-        },
-      ],
+        { name: "NAADAN Special Chicken Kizhi Parotta", price: 299 },
+        { name: "Chicken Kizhi Parotha", price: 239 },
+        { name: "Thattukada Chicken Pothi Parotta", price: 259 },
+        { name: "Pepper Chicken Kizhi Parotta", price: 289 },
+        { name: "Egg Roast Kizhi Parotta", price: 259 },
+        { name: "Paneer Roast Kizhi Parotta", price: 269 },
+        { name: "Chicken Roast Kizhi Dosa", price: 259 },
+        { name: "Egg Roast Kizhi Dosa", price: 249 },
+      ]
     },
     {
-      name: "Malabar Breads & Appams",
+      name: "Kerala Meals",
       items: [
-        {
-          name: "Flaky Layered Malabar Parotta",
-          description: "Hand-stretched, beaten, coiled and griddled with pure ghee — pair of 2.",
-          price: 95,
-          imageUrl: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          name: "Lacy Kerala Appam",
-          description: "Fermented rice batter hoppers with crispy golden edges and soft spongy centres.",
-          price: 80,
-          imageUrl: "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&w=800&q=80",
-        },
-      ],
+        { name: "Kerala Chicken Feast", price: 459 },
+        { name: "Kerala Fish Feast", price: 459 },
+        { name: "Kerala Egg Feast", price: 429 },
+        { name: "Kerala Veg Feast", price: 429 },
+      ]
     },
     {
-      name: "Kerala Starters",
+      name: "Mini meals",
       items: [
-        {
-          name: "Nadan Kozhi Roast",
-          description: "Caramelised shallots, curry leaves, crushed pepper — dark-roasted country chicken.",
-          price: 380,
-          imageUrl: "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          name: "Kerala Beef Fry",
-          description: "Tender slow-cooked beef with roasted coconut, curry leaves and whole spices.",
-          price: 360,
-          imageUrl: "https://images.unsplash.com/photo-1606491956689-2ea866880c84?auto=format&fit=crop&w=800&q=80",
-        },
-      ],
+        { name: "Kerala Chicken Mini Meal", price: 299 },
+        { name: "Kerala Fish Mini Meal", price: 299 },
+        { name: "Kerala Egg Mini Meal", price: 279 },
+        { name: "Kerala Veg Mini Meal", price: 279 },
+      ]
     },
     {
-      name: "Traditional Desserts",
+      name: "Pothichoru",
       items: [
-        {
-          name: "Palada Payasam",
-          description: "Slow-simmered rice ada in reduced milk sweetened with jaggery and cardamom.",
-          price: 120,
-          imageUrl: "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=800&q=80",
-        },
-        {
-          name: "Unniyappam",
-          description: "Deep-fried jaggery rice balls with banana, coconut bits and sesame.",
-          price: 90,
-          imageUrl: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=800&q=80",
-        },
-      ],
+        { name: "Chicken Fry Pothichoru", price: 319 },
+        { name: "Fish Fry Pothichoru", price: 319 },
+        { name: "Egg Roast Pothichoru", price: 299 },
+        { name: "Veg Pothichoru", price: 299 },
+      ]
     },
+    {
+      name: "Chatti Specials",
+      items: [
+        { name: "Chicken Chatti Choru", price: 449 },
+        { name: "Fish Chatti Dosa", price: 449 },
+        { name: "Chicken & Fish Chatti Dosa", price: 489 },
+      ]
+    },
+    {
+      name: "Malabar Parotta Combo's",
+      items: [
+        { name: "Chicken Chukka & Malabar Parotta", price: 249 },
+        { name: "Kerala Fish Curry & Malabar Parotta", price: 249 },
+        { name: "Egg Roast & Malabar Parotta", price: 239 },
+      ]
+    },
+    {
+      name: "Ghee Garlic Dosa Combo's",
+      items: [
+        { name: "Ghee Garlic Dosa & Chicken Roast", price: 249 },
+        { name: "Ghee Garlic Dosa & Kerala Fish Curry", price: 249 },
+      ]
+    },
+    {
+      name: "Ghee Rice Combo's",
+      items: [
+        { name: "Ghee Rice & Naadan Chicken Curry", price: 299 },
+        { name: "Ghee Rice & Chicken Chukka", price: 299 },
+      ]
+    },
+    {
+      name: "Tiffin Meal",
+      items: [
+        { name: "Kerala Chicken Tiffin Box", price: 279 },
+        { name: "Kerala Egg Tiffin Box", price: 249 },
+      ]
+    },
+    {
+      name: "Kanji Meals",
+      items: [
+        { name: "Chicken Fry Kanji Meal", price: 349 },
+        { name: "Kerala Kanji Meal", price: 299 },
+      ]
+    },
+    {
+      name: "Starters",
+      items: [
+        { name: "Thattukada Chicken Fry (Half)", price: 249 },
+        { name: "Thattukada Chicken Fry (Full)", price: 499 },
+        { name: "Chicken 65 (Half)", price: 249 },
+        { name: "Chicken 65 (Full)", price: 499 },
+        { name: "Garlic Chicken Fry (Full)", price: 499 },
+        { name: "Kerala Fish Fry (Full)", price: 499 },
+        { name: "Promfret Fry", price: 349 },
+      ]
+    },
+    {
+      name: "Kerala Curries & Classics",
+      items: [
+        { name: "Naadan Chicken Curry (Full)", price: 399 },
+        { name: "Chicken Chettinad (Full)", price: 399 },
+        { name: "Chicken Ghee Roast (Full)", price: 399 },
+        { name: "Chicken Kondattam (Full)", price: 399 },
+        { name: "Kerala Fish Curry (Full)", price: 399 },
+        { name: "Paneer Chukka (Full)", price: 369 },
+        { name: "Kerala Vegetable Stew (Full)", price: 399 },
+      ]
+    },
+    {
+      name: "Family Packs",
+      items: [
+        { name: "Chicken Curry Family Pack", price: 499 },
+        { name: "Kerala Fish Curry Family Pack", price: 529 },
+        { name: "Kerala Egg Curry Family Pack", price: 449 },
+      ]
+    },
+    {
+      name: "Rice & Breads",
+      items: [
+        { name: "Kerala Ghee Rice", price: 129 },
+        { name: "Kerala Matta Rice", price: 99 },
+        { name: "Steamed Rice", price: 79 },
+        { name: "Malabar Parotta", price: 29 },
+        { name: "Plain Dosa", price: 25 },
+        { name: "Roasted Chapati", price: 16 },
+        { name: "PAYASAM OF THE DAY", price: 99 },
+        { name: "ADA PRADHAMAN", price: 99 },
+      ]
+    }
   ]
 
+  // Clear dependent tables first to prevent foreign key errors
+await prisma.review.deleteMany()
+await prisma.orderItem.deleteMany()
+await prisma.order.deleteMany()
+await prisma.cartItem.deleteMany()
+await prisma.menuItem.deleteMany()
+await prisma.category.deleteMany()
+  
   for (const cat of categoriesData) {
-    const category = await prisma.category.upsert({
-      where: { name: cat.name },
-      update: {},
-      create: { name: cat.name },
-    })
-    console.log(`📁 ${category.name}`)
-
+    const category = await prisma.category.create({ data: { name: cat.name } })
+    
     for (const item of cat.items) {
-      const existing = await prisma.menuItem.findFirst({
-        where: { name: item.name, categoryId: category.id },
+      const resolvedImage = findBestImageMatch(cat.name, item.name);
+
+      await prisma.menuItem.create({
+        data: {
+          name: item.name,
+          price: item.price,
+          imageUrl: resolvedImage,
+          available: true,
+          categoryId: category.id,
+        },
       })
-      if (!existing) {
-        await prisma.menuItem.create({
-          data: { ...item, categoryId: category.id, available: true },
-        })
-      }
     }
   }
-
-  // Inventory items
-  const inventoryItems = [
-    { name: "Rice (Kaima)", unit: "kg", current: 50, buffer: 20, supplier: "Wayanad Rice Mills" },
-    { name: "Chicken (Country)", unit: "kg", current: 30, buffer: 15, supplier: "Local Farms" },
-    { name: "Mutton", unit: "kg", current: 25, buffer: 10, supplier: "Premium Meat House" },
-    { name: "Coconut Oil", unit: "litres", current: 40, buffer: 15, supplier: "Kozhikode Oils" },
-    { name: "Shallots", unit: "kg", current: 20, buffer: 8, supplier: "Vegetable Market" },
-    { name: "Curry Leaves", unit: "bunches", current: 15, buffer: 5, supplier: "Local Gardens" },
-    { name: "Ginger", unit: "kg", current: 10, buffer: 4, supplier: "Spice Market" },
-    { name: "Garlic", unit: "kg", current: 12, buffer: 5, supplier: "Spice Market" },
-    { name: "Turmeric Powder", unit: "kg", current: 8, buffer: 3, supplier: "Spice Market" },
-    { name: "Black Pepper", unit: "kg", current: 6, buffer: 2, supplier: "Wayanad Spices" },
-  ]
-
-  for (const item of inventoryItems) {
-    await prisma.inventoryItem.upsert({
-      where: { name: item.name },
-      update: {
-        unit: item.unit,
-        current: item.current,
-        buffer: item.buffer,
-        supplier: item.supplier,
-        status: item.current === 0 ? "OUT_OF_STOCK" : item.current < item.buffer ? "CRITICAL" : item.current < item.buffer * 1.5 ? "LOW_STOCK" : "IN_STOCK",
-      },
-      create: {
-        ...item,
-        status: item.current === 0 ? "OUT_OF_STOCK" : item.current < item.buffer ? "CRITICAL" : item.current < item.buffer * 1.5 ? "LOW_STOCK" : "IN_STOCK",
-      },
-    })
-  }
-  console.log("📦 Inventory items seeded")
-
-  console.log("✅ Seed complete.")
+  
+  console.log("🍽️ Menu items successfully seeded with local images!")
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1) })
-  .finally(() => prisma.$disconnect())
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
