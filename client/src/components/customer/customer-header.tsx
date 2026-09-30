@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { LogoutButton } from "../auth/logout-button"
+import { KITCHEN_LOCALITY, PREP_TIME_MINS } from "@/lib/constants"
 
 interface CustomerHeaderProps {
   cartCount?: number
@@ -80,7 +81,7 @@ export function CustomerHeader({ cartCount = 0, activePage, userName }: Customer
           {/* Location */}
           <div className="hidden xl:flex items-center gap-1 bg-[#f1ede6] px-3 py-1.5 rounded-full text-xs text-[#414942]">
             <span className="material-symbols-outlined text-[14px] text-[#7b5900]">location_on</span>
-            Nagpur • Civil Lines (24-35 min)
+            Nagpur • {KITCHEN_LOCALITY} ({PREP_TIME_MINS + 10}-{PREP_TIME_MINS + 20} min)
           </div>
 
           {/* Cart */}

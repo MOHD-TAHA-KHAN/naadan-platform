@@ -5,6 +5,7 @@ import { CustomerHeader } from "@/components/customer/customer-header"
 import { CustomerFooter } from "@/components/customer/footer"
 import { CartItemRow } from "@/components/customer/cart-item-row"
 import { CheckoutForm } from "@/components/customer/checkout-form"
+import { FOOD_GST_PERCENT } from "@/lib/constants"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Cart & Checkout | Naadan" }
@@ -30,12 +31,13 @@ export default async function CartPage() {
     },
   }))
 
-  const subtotal = serializedItems.reduce(
+  const itemTotal = serializedItems.reduce(
     (sum, ci) => sum + ci.menuItem.price * ci.quantity,
     0
   )
-  const deliveryFee = subtotal > 0 ? 40 : 0
-  const total = subtotal + deliveryFee
+  const gstAmount = Math.round(itemTotal * (FOOD_GST_PERCENT / 100))
+  const deliveryFee = itemTotal > 0 ? 40 : 0
+  const grandTotal = itemTotal + gstAmount + deliveryFee
 
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
@@ -59,7 +61,7 @@ export default async function CartPage() {
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[#fcca66] animate-pulse" />
               <span className="text-[10px] font-semibold tracking-widest uppercase text-[#ffdea4]">Live Kitchen Status:</span>
-              <span className="text-xs text-[#baefcb]">Civil Lines Handi Station active • Dum timer 18m remaining</span>
+              <span className="text-xs text-[#baefcb]">Sadar Handi Station active • Dum timer 18m remaining</span>
             </div>
             <div className="hidden md:flex items-center gap-1 text-[#baefcb]">
               <span className="material-symbols-outlined text-[14px] text-[#fcca66]">verified</span>
@@ -150,21 +152,25 @@ export default async function CartPage() {
                       </div>
                     ))}
                     <div className="border-t border-[#f1ede6] pt-3 flex justify-between text-[#414942]">
-                      <span>Subtotal</span>
-                      <span className="font-medium text-[#002211]">₹{subtotal.toFixed(0)}</span>
+                      <span>Item Total</span>
+                      <span className="font-medium text-[#002211]">₹{itemTotal.toFixed(0)}</span>
                     </div>
                     <div className="flex justify-between text-[#414942]">
-                      <span>Delivery fee</span>
+                      <span>Taxes &amp; Charges (5% GST)</span>
+                      <span className="font-medium text-[#002211]">₹{gstAmount.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[#414942]">
+                      <span>Delivery Partner Fee</span>
                       <span className="font-medium text-[#002211]">₹{deliveryFee}</span>
                     </div>
                     <div className="border-t border-[#f1ede6] pt-3 flex justify-between font-bold text-[#002211]">
-                      <span>Total</span>
-                      <span>₹{total.toFixed(0)}</span>
+                      <span>Total Payable</span>
+                      <span>₹{grandTotal.toFixed(0)}</span>
                     </div>
                   </div>
                 </div>
 
-                <CheckoutForm />
+                <CheckoutForm items={serializedItems.map(ci => ({ price: ci.menuItem.price, quantity: ci.quantity, name: ci.menuItem.name }))} />
               </div>
             </div>
           )}

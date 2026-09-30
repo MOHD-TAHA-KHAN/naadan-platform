@@ -29,8 +29,9 @@ export async function toggleMenuItemAvailability(itemId: string, available: bool
 
 export async function updateOrderStatus(orderId: string, status: string) {
   try {
+    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000"
     const res = await fetch(
-      "http://127.0.0.1:3001/api/kds/orders/" + encodeURIComponent(orderId) + "/status",
+      `${backendUrl}/api/orders/${encodeURIComponent(orderId)}/status`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

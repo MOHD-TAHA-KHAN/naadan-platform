@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import { io, Socket } from "socket.io-client"
 
-const WS_URL = "ws://localhost:3001/ws"
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000"
 
 export function useKdsSocket(initialActiveCount: number) {
   const router = useRouter()
@@ -13,8 +14,7 @@ export function useKdsSocket(initialActiveCount: number) {
   const [secondsAgo, setSecondsAgo] = useState(0)
   const [newOrderAlert, setNewOrderAlert] = useState(false)
   const prevCountRef = useRef(initialActiveCount)
-  const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const socketRef = useRef<Socket | null>(null)
 
   function refresh() {
     startTransition(() => {
@@ -25,69 +25,46 @@ export function useKdsSocket(initialActiveCount: number) {
   }
 
   useEffect(() => {
-    let closed = false
+    const socket = io(SOCKET_URL, {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 5,
+    })
+    socketRef.current = socket
 
-    function connect() {
-      try {
-        const ws = new WebSocket(WS_URL)
-        wsRef.current = ws
+    socket.on("connect", () => {
+      setConnected(true)
+      setLastRefreshed(new Date())
+      setSecondsAgo(0)
+    })
 
-        ws.onopen = () => {
-          setConnected(true)
-        }
+    socket.on("disconnect", () => {
+      setConnected(false)
+    })
 
-        ws.onclose = () => {
-          setConnected(false)
-          if (!closed && !reconnectTimerRef.current) {
-            reconnectTimerRef.current = setTimeout(() => {
-              reconnectTimerRef.current = null
-              connect()
-            }, 2_000)
-          }
-        }
+    socket.on("connect_error", () => {
+      setConnected(false)
+    })
 
-        ws.onerror = () => {
-          try { ws.close() } catch { /* ignore */ }
-        }
+    socket.on("order:created", () => {
+      refresh()
+      setNewOrderAlert(true)
+      setTimeout(() => setNewOrderAlert(false), 4000)
+    })
 
-        ws.onmessage = (event) => {
-          if (typeof event.data === "string" && event.data === "REFRESH") {
-            startTransition(() => {
-              router.refresh()
-            })
-            setLastRefreshed(new Date())
-            setSecondsAgo(0)
-          }
-        }
-      } catch {
-        if (!closed && !reconnectTimerRef.current) {
-          reconnectTimerRef.current = setTimeout(() => {
-            reconnectTimerRef.current = null
-            connect()
-          }, 2_000)
-        }
-      }
-    }
-
-    connect()
+    socket.on("order:status_updated", () => {
+      refresh()
+    })
 
     return () => {
-      closed = true
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current)
-        reconnectTimerRef.current = null
-      }
-      if (wsRef.current) {
-        try { wsRef.current.close() } catch { /* ignore */ }
-        wsRef.current = null
-      }
+      socket.disconnect()
+      socketRef.current = null
     }
   }, [router, startTransition])
 
   useEffect(() => {
     const tick = setInterval(() => {
-      setSecondsAgo(Math.floor((Date.now() - lastRefreshed.getTime()) / 1_000))
-    }, 1_000)
+      setSecondsAgo(Math.floor((Date.now() - lastRefreshed.getTime()) / 1000))
+    }, 1000)
     return () => clearInterval(tick)
   }, [lastRefreshed])
 
@@ -108,7 +85,7 @@ export function useKdsSocket(initialActiveCount: number) {
       } catch {
         // AudioContext unavailable
       }
-      const t = setTimeout(() => setNewOrderAlert(false), 4_000)
+      const t = setTimeout(() => setNewOrderAlert(false), 4000)
       return () => clearTimeout(t)
     }
     prevCountRef.current = initialActiveCount
@@ -123,3 +100,4 @@ export function useKdsSocket(initialActiveCount: number) {
 
   return { connected, refreshLabel, newOrderAlert, refresh }
 }
+

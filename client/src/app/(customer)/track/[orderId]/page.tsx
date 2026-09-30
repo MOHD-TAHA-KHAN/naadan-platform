@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { TrackPoller } from "@/components/customer/track-poller"
+import { LiveTrackingMap } from "@/components/customer/LiveTrackingMap"
 import { getStatusLabel } from "@/lib/utils"
 import type { Metadata } from "next"
 
@@ -70,6 +71,25 @@ export default async function TrackOrderPage({
     order.status as (typeof STATUS_STEPS)[number]
   )
 
+  let displayAddress = ""
+  let customerCoords: { lat: number; lng: number } | null = null
+  let kitchenCoords = { lat: 21.1594, lng: 79.0825 } // Sadar, Nagpur
+
+  try {
+    const rawAddr = (order as any).deliveryAddress || order.address
+    const parsed = typeof rawAddr === "string" ? JSON.parse(rawAddr) : rawAddr
+
+    displayAddress = parsed?.drop?.address || parsed?.address || rawAddr || ""
+    if (parsed?.drop?.lat && parsed?.drop?.lng) {
+      customerCoords = { lat: Number(parsed.drop.lat), lng: Number(parsed.drop.lng) }
+    }
+    if (parsed?.pickup?.lat && parsed?.pickup?.lng) {
+      kitchenCoords = { lat: Number(parsed.pickup.lat), lng: Number(parsed.pickup.lng) }
+    }
+  } catch {
+    displayAddress = (order as any).deliveryAddress || order.address || "Address details unavailable"
+  }
+
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
       {/* Invisible polling island — passes current status so it can self-stop */}
@@ -114,11 +134,11 @@ export default async function TrackOrderPage({
                     </span>
                   )}
                 </div>
-                {order.address && (
+                {displayAddress && (
                   <p className="text-xs text-[#717972] mt-0.5">
                     Delivering to:{" "}
                     <span className="text-[#1c1c17] font-medium">
-                      {order.address}
+                      {displayAddress}
                     </span>
                   </p>
                 )}
@@ -307,6 +327,15 @@ export default async function TrackOrderPage({
               </div>
             </div>
           )}
+
+          {/* ── Interactive Live Route Map & ETA ────────────────────────────── */}
+          <LiveTrackingMap
+            orderId={order.id}
+            status={order.status}
+            kitchenCoords={kitchenCoords}
+            customerCoords={customerCoords}
+            displayAddress={displayAddress}
+          />
 
           {/* ── Order items ────────────────────────────────────────────────── */}
           <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6">

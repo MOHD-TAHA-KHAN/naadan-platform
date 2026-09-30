@@ -2,23 +2,38 @@
 
 import { useTransition, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { placeOrder, reverseGeocodeAction } from "@/actions/cart"
+import { placeOrder, reverseGeocodeAction, calculateDeliveryTime, getDeliveryMetrics } from "@/actions/cart"
 import { calculateDistance, validateDeliveryAddress, formatGranularAddress, validatePhoneNumber } from "@/lib/utils"
+import { KITCHEN_COORDS, MAX_RADIUS_KM, FOOD_GST_PERCENT } from "@/lib/constants"
 import dynamic from "next/dynamic"
+
+export interface CartItemSummary {
+  price: number
+  quantity: number
+  name?: string
+}
+
+interface CheckoutFormProps {
+  items?: CartItemSummary[]
+}
+
+export function calculateDeliveryFee(distanceKm?: string | number | null): number {
+  if (!distanceKm) return 40
+  const dist = typeof distanceKm === "string" ? parseFloat(distanceKm) : distanceKm
+  if (isNaN(dist) || dist <= 3) return 40
+  return Math.min(100, Math.round(40 + (dist - 3) * 10))
+}
 
 const LocationPicker = dynamic(() => import("@/components/customer/LocationPicker"), {
   ssr: false,
   loading: () => (
     <div className="h-[260px] w-full rounded-xl bg-[#f7f3eb] border border-[#c0c9c0] animate-pulse flex items-center justify-center text-xs text-[#717972]">
-      Loading OpenStreetMap...
+      Loading Google Maps...
     </div>
   ),
 })
 
-export const KITCHEN_COORDS = { lat: 21.1610, lng: 79.0838 }
-export const MAX_RADIUS_KM = 8
-
-export function CheckoutForm() {
+export function CheckoutForm({ items = [] }: CheckoutFormProps) {
   const [isPending, startTransition] = useTransition()
   const [address, setAddress] = useState("")
   const [geocodedBaseAddress, setGeocodedBaseAddress] = useState<string | null>(null)
@@ -26,10 +41,17 @@ export function CheckoutForm() {
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const [lat, setLat] = useState<number | null>(KITCHEN_COORDS.lat)
   const [lng, setLng] = useState<number | null>(KITCHEN_COORDS.lng)
+  const [deliveryEta, setDeliveryEta] = useState<{
+    travelMins: number
+    prepMins: number
+    totalEtaMins: number
+    distanceKm: number | string
+  } | null>(null)
+  const [isCalculatingEta, setIsCalculatingEta] = useState(false)
   const [isGeocoding, setIsGeocoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const abortControllerRef = useRef<AbortController | null>(null)
+  const etaDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const addressValidation = validateDeliveryAddress(address, geocodedBaseAddress)
   const isAddressValid = addressValidation.isValid
@@ -69,81 +91,63 @@ export function CheckoutForm() {
   const isOutOfZone = distanceKm !== null && distanceKm > MAX_RADIUS_KM
   const isSubmitDisabled = isPending || isPinAtDefault || isOutOfZone || !isAddressValid || !isPhoneValid
 
-  // Reverse geocodes coordinates using Ola Maps Reverse Geocoding API with fallback
-  const handleLocationChange = async (selectedLat: number, selectedLng: number) => {
+  const itemTotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  const gstAmount = Math.round(itemTotal * (FOOD_GST_PERCENT / 100)) // 5% GST on food services
+  const deliveryFee = deliveryEta ? calculateDeliveryFee(deliveryEta.distanceKm) : 40
+  const grandTotal = itemTotal + gstAmount + deliveryFee
+
+  // Handle location changes, debounced ETA calculation (400ms), and reverse geocoding
+  const handleLocationChange = (selectedLat: number, selectedLng: number) => {
     setLat(selectedLat)
     setLng(selectedLng)
     if (error === "Please drop the pin on your exact delivery location.") {
       setError(null)
     }
 
-    // Cancel any previous in-flight reverse geocode request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
+    if (etaDebounceRef.current) {
+      clearTimeout(etaDebounceRef.current)
     }
-    const controller = new AbortController()
-    abortControllerRef.current = controller
 
+    setIsCalculatingEta(true)
     setIsGeocoding(true)
 
-    try {
-      let fetchedAddress: string | null = null
-
-      // Attempt 1: Ola Maps Reverse Geocoding API
+    etaDebounceRef.current = setTimeout(async () => {
       try {
-        const olaUrl = `https://api.olamaps.io/places/v1/reverse-geocode?latlng=${selectedLat},${selectedLng}&api_key=NgUrx6PuNv5JMgAQhWAZyfmG9PcGOR3b`
-        const res = await fetch(olaUrl, {
-          headers: {
-            "X-Request-Id": typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `req-${Date.now()}`,
-          },
-          signal: controller.signal,
+        const metrics = await getDeliveryMetrics(selectedLat, selectedLng)
+        setDeliveryEta({
+          travelMins: metrics.travelMins,
+          prepMins: metrics.prepMins,
+          totalEtaMins: metrics.totalEtaMins,
+          distanceKm: metrics.distanceKm,
         })
 
-        if (res.ok) {
-          const data = await res.json()
-          if (data?.results?.[0]?.formatted_address) {
-            fetchedAddress = data.results[0].formatted_address
-          }
+        if (metrics.formattedAddress) {
+          const fetchedAddress = metrics.formattedAddress
+          setGeocodedBaseAddress(fetchedAddress)
+          // Set address directly to the returned full string, preserving any user-prepended flat/house number
+          setAddress((prev) => {
+            if (!prev.trim()) {
+              return fetchedAddress
+            }
+            if (geocodedBaseAddress && prev.includes(geocodedBaseAddress)) {
+              return prev.replace(geocodedBaseAddress, fetchedAddress)
+            }
+            const flatPrefixMatch = prev.match(/^(?:flat|house|room|plot|apt|apartment|#|unit|villa|door|shop|no\.)\s*[^,]+,\s*/i)
+            if (flatPrefixMatch) {
+              return `${flatPrefixMatch[0]}${fetchedAddress}`
+            }
+            return fetchedAddress
+          })
+          // Clear any previous address error immediately
+          setError(null)
         }
-      } catch (clientErr: any) {
-        if (clientErr?.name === "AbortError") return
+      } catch (err) {
+        console.error("Error fetching delivery metrics:", err)
+      } finally {
+        setIsCalculatingEta(false)
+        setIsGeocoding(false)
       }
-
-      // Attempt 2: Graceful fallback to existing reverseGeocodeAction
-      if (!fetchedAddress) {
-        try {
-          const serverRes = await reverseGeocodeAction(selectedLat, selectedLng)
-          if (serverRes?.address) {
-            fetchedAddress = serverRes.address
-          }
-        } catch (fallbackErr) {
-          console.error("Fallback reverse geocode error:", fallbackErr)
-        }
-      }
-
-      if (fetchedAddress) {
-        setGeocodedBaseAddress(fetchedAddress)
-        // Auto-populate textarea, preserving any user-prepended "Flat/House No." string using regex
-        setAddress((prev) => {
-          if (geocodedBaseAddress && prev.includes(geocodedBaseAddress)) {
-            return prev.replace(geocodedBaseAddress, fetchedAddress)
-          }
-          const flatPrefixMatch = prev.match(/^(?:flat|house|room|plot|apt|apartment|#|unit)\s*[^,]+,\s*/i)
-          if (flatPrefixMatch) {
-            return `${flatPrefixMatch[0]}${fetchedAddress}`
-          }
-          return fetchedAddress
-        })
-        // Clear any previous address error immediately
-        setError(null)
-      }
-    } catch (err: any) {
-      if (err?.name !== "AbortError") {
-        console.error("Reverse geocoding error:", err)
-      }
-    } finally {
-      setIsGeocoding(false)
-    }
+    }, 400)
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -181,8 +185,17 @@ export function CheckoutForm() {
     setError(null)
     startTransition(async () => {
       const cleanPhone = currentPhoneValidation.cleanedNumber || phoneNumber.trim()
-      const fullAddress = `${address.trim()} (Phone: ${cleanPhone}) (Pinned: ${lat!.toFixed(4)}, ${lng!.toFixed(4)})`
-      const result = await placeOrder(fullAddress)
+      const payload = {
+        pickup: KITCHEN_COORDS,
+        drop: {
+          lat: lat!,
+          lng: lng!,
+          address: address.trim(),
+          phone: cleanPhone,
+        },
+        etaMins: deliveryEta?.totalEtaMins,
+      }
+      const result = await placeOrder(payload)
       if (result.error) {
         setError(result.error)
       } else if (result.orderId) {
@@ -202,6 +215,14 @@ export function CheckoutForm() {
           Delivery Pin &amp; Cloud Kitchen
         </label>
         <LocationPicker onLocationChange={handleLocationChange} />
+        {deliveryEta && !isPinAtDefault && (
+          <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e8f5e9] border border-[#38684c]/20 text-[#033921] text-xs font-semibold shadow-xs">
+            <span className="material-symbols-outlined text-[16px] text-[#033921]">schedule</span>
+            <span>
+              Estimated Delivery: {deliveryEta.totalEtaMins} mins ({deliveryEta.prepMins}m kitchen prep + {deliveryEta.travelMins}m travel, {deliveryEta.distanceKm} km)
+            </span>
+          </div>
+        )}
       </div>
 
       <div>
@@ -328,6 +349,28 @@ export function CheckoutForm() {
           <span>Delivery location is {distanceKm.toFixed(1)} km from kitchen (within {MAX_RADIUS_KM}km zone).</span>
         </div>
       ) : null}
+
+      {/* Bill Summary */}
+      {items.length > 0 && (
+        <div className="bg-[#f7f3eb] rounded-xl p-4 border border-[#c0c9c0]/50 space-y-2 text-xs">
+          <div className="flex justify-between text-[#414942]">
+            <span>Item Total</span>
+            <span className="font-medium text-[#002211]">₹{itemTotal}</span>
+          </div>
+          <div className="flex justify-between text-[#414942]">
+            <span>Taxes &amp; Charges (5% GST)</span>
+            <span className="font-medium text-[#002211]">₹{gstAmount}</span>
+          </div>
+          <div className="flex justify-between text-[#414942]">
+            <span>Delivery Partner Fee</span>
+            <span className="font-medium text-[#002211]">₹{deliveryFee}</span>
+          </div>
+          <div className="border-t border-[#c0c9c0]/40 pt-2 flex justify-between font-bold text-[#002211] text-sm">
+            <span>Total Payable</span>
+            <span className="text-[#033921]">₹{grandTotal}</span>
+          </div>
+        </div>
+      )}
 
       <button
         type="submit"

@@ -116,7 +116,7 @@ export default async function MenuPage({
             {[
               { icon: "soup_kitchen", title: "Stone-Crushed Masalas", desc: "Shallots, whole black pepper, and curry leaves hand-ground on ammikallu stones." },
               { icon: "eco", title: "Cold-Pressed Coconut Oil", desc: "Sourced from smallholder groves in Kozhikode for uncompromised aroma." },
-              { icon: "verified", title: "Zero Reheating Policy", desc: "Fresh batches prepared every 3 hours at our Civil Lines cloud station." },
+              { icon: "verified", title: "Zero Reheating Policy", desc: "Fresh batches prepared every 3 hours at our Sadar cloud station." },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-[#fcca66] flex items-center justify-center shrink-0">
@@ -153,7 +153,7 @@ export default async function MenuPage({
                 <span className="material-symbols-outlined text-[#7b5900] text-[18px]">room_service</span>
                 <div>
                   <div className="text-xs text-[#717972]">Nagpur Delivery Hub</div>
-                  <div className="text-xs font-semibold text-[#002211]">Civil Lines (28-35 mins)</div>
+                  <div className="text-xs font-semibold text-[#002211]">Sadar (25-35 mins)</div>
                 </div>
               </div>
             </div>

@@ -10,8 +10,6 @@ dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") })
 
 const prisma = new PrismaClient()
 
-
-
 // Helper to find the best matching image in a folder
 function findBestImageMatch(categoryFolder: string, itemName: string): string | null {
   const dirPath = path.join(process.cwd(), "..", "client", "public", "Catalogue image", categoryFolder);
@@ -28,7 +26,7 @@ function findBestImageMatch(categoryFolder: string, itemName: string): string | 
 
   // Since your files are named perfectly (e.g., "Egg Roast Pothichoru.jpg"), try an exact match first
   const exactMatch = files.find(f => f.toLowerCase().includes(itemName.toLowerCase()));
-  if (exactMatch) return `/Catalogue image/${categoryFolder}/${exactMatch}`;
+  if (exactMatch) return `/Catalogue image/${encodeURIComponent(categoryFolder)}/${encodeURIComponent(exactMatch)}`;
 
   // Fallback to Fuzzy Match if exact match fails
   const itemWords = itemName.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(' ').filter(w => w.length > 2);
@@ -45,7 +43,7 @@ function findBestImageMatch(categoryFolder: string, itemName: string): string | 
     }
   }
 
-  return `/Catalogue image/${categoryFolder}/${bestMatch}`;
+  return `/Catalogue image/${encodeURIComponent(categoryFolder)}/${encodeURIComponent(bestMatch)}`;
 }
 
 async function main() {
@@ -200,12 +198,12 @@ async function main() {
   ]
 
   // Clear dependent tables first to prevent foreign key errors
-await prisma.review.deleteMany()
-await prisma.orderItem.deleteMany()
-await prisma.order.deleteMany()
-await prisma.cartItem.deleteMany()
-await prisma.menuItem.deleteMany()
-await prisma.category.deleteMany()
+  await prisma.review.deleteMany()
+  await prisma.orderItem.deleteMany()
+  await prisma.order.deleteMany()
+  await prisma.cartItem.deleteMany()
+  await prisma.menuItem.deleteMany()
+  await prisma.category.deleteMany()
   
   for (const cat of categoriesData) {
     const category = await prisma.category.create({ data: { name: cat.name } })

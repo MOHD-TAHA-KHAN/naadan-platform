@@ -19,12 +19,28 @@ export default async function AdminOrdersPage() {
   if (!session?.user) redirect("/login")
   if (session.user.role !== "ADMIN") redirect("/")
 
-  const res = await fetch("http://127.0.0.1:3001/api/kds/orders", { cache: "no-store" })
-  if (!res.ok) throw new Error("Failed to load KDS orders from backend")
-  
-  const { activeTickets, pastTickets } = (await res.json()) as {
-    activeTickets: KdsTicket[]
-    pastTickets: KdsTicket[]
+  let activeTickets: KdsTicket[] = []
+  let pastTickets: KdsTicket[] = []
+
+  try {
+    const backendUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000"
+    const res = await fetch(`${backendUrl}/api/orders?active=true`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    })
+    if (res.ok) {
+      const data = (await res.json()) as {
+        orders?: KdsTicket[]
+        activeTickets?: KdsTicket[]
+        pastTickets?: KdsTicket[]
+      }
+      activeTickets = data.orders || data.activeTickets || []
+      pastTickets = data.pastTickets || []
+    }
+  } catch (err) {
+    console.error("[admin/orders] Failed to load KDS orders from backend:", err)
+    activeTickets = []
+    pastTickets = []
   }
 
   return (

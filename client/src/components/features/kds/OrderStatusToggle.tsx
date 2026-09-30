@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState } from "react"
 import { updateOrderStatus } from "@/actions/admin"
 import { cn } from "@/components/ui"
 import type { OrderStatus } from "./types"
@@ -14,11 +14,20 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus | null> = {
   CANCELLED: null,
 }
 
+const ACTION_LABELS: Record<OrderStatus, string> = {
+  PENDING: "Accept Order",
+  CONFIRMED: "Start Cooking",
+  PREPARING: "Ready for Pickup / Dispatch",
+  OUT_FOR_DELIVERY: "Mark Delivered",
+  DELIVERED: "Delivered",
+  CANCELLED: "Cancelled",
+}
+
 const TONES: Record<OrderStatus, string> = {
-  PENDING: "bg-[#fcca66] hover:bg-[#f6c054] text-[#755400]",
-  CONFIRMED: "bg-[#c7e2ff] hover:bg-[#b6d5ff] text-[#0a2a60]",
-  PREPARING: "bg-[#ffb780] hover:bg-[#ffa766] text-[#5a2300]",
-  OUT_FOR_DELIVERY: "bg-[#e5d2ff] hover:bg-[#d8c0ff] text-[#3a0f80]",
+  PENDING: "bg-[#033921] hover:bg-[#002211] text-[#ffdea4]",
+  CONFIRMED: "bg-[#0a2a60] hover:bg-[#061d44] text-[#c7e2ff]",
+  PREPARING: "bg-[#5a2300] hover:bg-[#3d1700] text-[#ffb780]",
+  OUT_FOR_DELIVERY: "bg-[#3a0f80] hover:bg-[#250854] text-[#e5d2ff]",
   DELIVERED: "bg-[#cde6d5] text-[#063722]",
   CANCELLED: "bg-[#ffd4d4] text-[#6b0e0e]",
 }
@@ -26,11 +35,13 @@ const TONES: Record<OrderStatus, string> = {
 export function OrderStatusToggle({
   orderId,
   initialStatus,
+  onStatusUpdated,
 }: {
   orderId: string
   initialStatus: OrderStatus
+  onStatusUpdated?: (orderId: string, newStatus: OrderStatus) => void
 }) {
-  const [isPending, startTransition] = useTransition()
+  const [isUpdating, setIsUpdating] = useState(false)
   const next = TRANSITIONS[initialStatus]
 
   if (!next) {
@@ -41,20 +52,43 @@ export function OrderStatusToggle({
     )
   }
 
+  const label = ACTION_LABELS[initialStatus] || `Mark ${next.replace(/_/g, " ")}`
+
+  async function handleAdvance() {
+    if (!next || isUpdating) return
+    setIsUpdating(true)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const res = await fetch(`${apiUrl}/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!res.ok) {
+        // Fallback to server action
+        await updateOrderStatus(orderId, next)
+      }
+      onStatusUpdated?.(orderId, next)
+    } catch {
+      await updateOrderStatus(orderId, next)
+      onStatusUpdated?.(orderId, next)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   return (
     <button
-      onClick={() => {
-        startTransition(async () => {
-          await updateOrderStatus(orderId, next)
-        })
-      }}
-      disabled={isPending}
+      onClick={handleAdvance}
+      disabled={isUpdating}
       className={cn(
-        "px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-70",
-        TONES[next],
+        "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5",
+        TONES[initialStatus] || TONES[next],
       )}
     >
-      {isPending ? "…" : `Mark ${next.replace(/_/g, " ")}`}
+      {isUpdating && <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>}
+      <span>{isUpdating ? "Updating..." : label}</span>
     </button>
   )
 }
+

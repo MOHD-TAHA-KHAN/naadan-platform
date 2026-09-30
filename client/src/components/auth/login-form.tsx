@@ -4,6 +4,7 @@ import { useActionState } from "react"
 import Link from "next/link"
 import { signIn } from "next-auth/react"
 import { loginAction, type ActionState } from "@/actions/auth"
+import { UtensilsCrossed, LogIn, Loader2, AlertCircle } from "lucide-react"
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState<ActionState | null, FormData>(
@@ -16,8 +17,8 @@ export function LoginForm() {
       <div className="bg-[#ffffff] border border-[#c0c9c0]/50 shadow-xl rounded-2xl p-8">
         {/* Brand */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="h-14 w-14 rounded-xl bg-[#033921] flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-[#ffdea4] text-[28px]">soup_kitchen</span>
+          <div className="h-14 w-14 rounded-xl bg-[#033921] flex items-center justify-center mb-4 shadow-sm">
+            <UtensilsCrossed className="w-8 h-8 text-[#ffdea4]" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
             Welcome to Naadan
@@ -29,8 +30,8 @@ export function LoginForm() {
 
         {state?.error && (
           <div className="mb-5 flex items-center gap-2 rounded-lg border border-[#ba1a1a]/20 bg-[#ffdad6] p-3 text-sm text-[#93000a]">
-            <span className="material-symbols-outlined text-[16px]">error</span>
-            {state.error}
+            <AlertCircle className="w-4 h-4 text-[#ba1a1a] shrink-0" />
+            <span>{state.error}</span>
           </div>
         )}
 
@@ -59,17 +60,17 @@ export function LoginForm() {
 
           <button
             type="submit" disabled={isPending}
-            className="w-full mt-2 flex items-center justify-center gap-2 rounded-lg bg-[#033921] hover:bg-[#002211] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-2 flex items-center justify-center gap-2 rounded-lg bg-[#033921] hover:bg-[#002211] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isPending ? (
               <>
-                <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
-                Signing in...
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Signing in...</span>
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[16px]">login</span>
-                Sign in to Naadan
+                <LogIn className="w-4 h-4 text-white" />
+                <span>Sign in to Naadan</span>
               </>
             )}
           </button>

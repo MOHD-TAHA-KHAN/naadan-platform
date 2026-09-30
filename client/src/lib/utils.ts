@@ -62,10 +62,18 @@ export function validateDeliveryAddress(
   // 1. Enforce retention of geocoded base address (if available)
   if (geocodedBaseAddress && geocodedBaseAddress.trim().length > 0) {
     const normalizedBase = geocodedBaseAddress.trim().toLowerCase()
+    // Directly accept full formatted_address or if rawAddress contains it
     if (!normalizedRaw.includes(normalizedBase)) {
-      return {
-        isValid: false,
-        error: "Please retain the map-synced area details.",
+      const baseTokens = normalizedBase
+        .split(/[\s,./\-\\]+/)
+        .filter((t) => t.length > 2 && !["the", "near", "opposite", "opp"].includes(t))
+      const matchCount = baseTokens.filter((t) => normalizedRaw.includes(t)).length
+      const threshold = Math.min(2, baseTokens.length)
+      if (matchCount < threshold && !normalizedRaw.includes("nagpur")) {
+        return {
+          isValid: false,
+          error: "Please retain the map-synced area details.",
+        }
       }
     }
   } else {
@@ -188,12 +196,23 @@ export interface NominatimAddressDetails {
 }
 
 /**
- * Formats a localized, granular street-level address from Nominatim's address object.
- * Excludes redundant administrative bloat (city/state/country repetitions) while extracting
- * amenity, building, road, neighbourhood, suburb, and postcode.
+ * Formats a localized, granular address from geocoding results without truncating.
  */
-export function formatGranularAddress(addrObj: NominatimAddressDetails | undefined): string {
-  if (!addrObj || typeof addrObj !== "object") return ""
+export function formatGranularAddress(addrObj: NominatimAddressDetails | string | undefined): string {
+  if (!addrObj) return ""
+
+  // If already a full formatted address string, return directly without truncating
+  if (typeof addrObj === "string") {
+    return addrObj.replace(/,\s*India$/i, "").trim()
+  }
+
+  if (addrObj.display_name && typeof addrObj.display_name === "string") {
+    return addrObj.display_name.replace(/,\s*India$/i, "").trim()
+  }
+
+  if (addrObj.formatted_address && typeof addrObj.formatted_address === "string") {
+    return addrObj.formatted_address.replace(/,\s*India$/i, "").trim()
+  }
 
   const parts: (string | undefined)[] = [
     addrObj.amenity,
@@ -202,15 +221,9 @@ export function formatGranularAddress(addrObj: NominatimAddressDetails | undefin
     addrObj.road || addrObj.pedestrian || addrObj.residential,
     addrObj.neighbourhood,
     addrObj.suburb,
+    addrObj.city || addrObj.town || addrObj.village,
+    addrObj.postcode,
   ]
-
-  // If neighbourhood and suburb are missing, use city/town/village as local fallback
-  if (!addrObj.neighbourhood && !addrObj.suburb) {
-    parts.push(addrObj.city || addrObj.town || addrObj.village)
-  }
-
-  // Postal code
-  parts.push(addrObj.postcode)
 
   // Filter out undefined, empty, and duplicate components
   const uniqueParts: string[] = []

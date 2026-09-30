@@ -83,7 +83,7 @@ export default async function CustomerHomePage() {
                 {
                   icon: "verified",
                   title: "Zero Reheating Policy",
-                  description: "Fresh batches prepared every 3 hours at our Civil Lines cloud station."
+                  description: "Fresh batches prepared every 3 hours at our Sadar cloud station."
                 }
               ].map((feature) => (
                 <div key={feature.title} className="bg-[#ffffff] rounded-2xl p-6 shadow-sm border border-[#f1ede6]">

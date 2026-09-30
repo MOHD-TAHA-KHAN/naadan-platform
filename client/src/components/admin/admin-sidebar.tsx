@@ -55,7 +55,7 @@ export function AdminSidebar({ activePath, staffName }: AdminSidebarProps) {
       <div className="mx-4 mb-4 p-2 bg-[#002211]/60 rounded-lg flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[14px] text-[#ffdea4]">soup_kitchen</span>
-          <span className="text-[11px] font-semibold text-[#baefcb]">Civil Lines Cloud Station</span>
+          <span className="text-[11px] font-semibold text-[#baefcb]">Sadar Cloud Station</span>
         </div>
         <span className="w-2 h-2 rounded-full bg-[#fcca66] animate-pulse" />
       </div>

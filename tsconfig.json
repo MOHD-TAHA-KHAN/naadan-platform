@@ -32,6 +32,7 @@
       "@/utils": ["./client/src/utils"],
       "@/utils/*": ["./client/src/utils/*"],
       "@server/*": ["./server/src/*"],
+      "@server": ["./server/src/index.ts", "./server/src"],
       "@/*": ["./client/src/*"]
     }
   },
