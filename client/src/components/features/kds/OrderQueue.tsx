@@ -21,7 +21,11 @@ export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicke
   useEffect(() => {
     async function fetchActiveOrders() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/orders?active=true`)
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes("3000")
+            ? process.env.NEXT_PUBLIC_API_URL
+            : "http://localhost:5000"
+        const res = await fetch(`${apiUrl}/api/orders?active=true`)
         if (res.ok) {
           const data = await res.json()
           const list = data.orders || (Array.isArray(data) ? data : [])
@@ -36,7 +40,12 @@ export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicke
 
   // 2. Dual Hydration: Real-Time Sync via Socket.io
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000", {
+    const socketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL && !process.env.NEXT_PUBLIC_SOCKET_URL.includes("3000")
+        ? process.env.NEXT_PUBLIC_SOCKET_URL
+        : "http://localhost:5000"
+
+    const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 5,
     })

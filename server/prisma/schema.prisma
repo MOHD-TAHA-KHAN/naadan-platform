@@ -20,22 +20,41 @@ enum OrderStatus {
   OUT_FOR_DELIVERY
   DELIVERED
   CANCELLED
+  REJECTED
 }
 
 model User {
-  id        String     @id @default(cuid())
-  name      String
-  email     String     @unique
-  password  String
-  image     String?
-  phone     String?
-  address   String?
-  role      Role       @default(USER)
-  cartItems CartItem[]
-  orders    Order[]
-  reviews   Review[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  password       String
+  image          String?
+  phone          String?
+  address        String?
+  role           Role           @default(USER)
+  cartItems      CartItem[]
+  orders         Order[]
+  savedAddresses SavedAddress[]
+  reviews        Review[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model SavedAddress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String   @default("Home")
+  flatDetails String
+  street      String?
+  fullAddress String
+  lat         Float
+  lng         Float
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Category {
@@ -78,20 +97,24 @@ model CartItem {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  items      OrderItem[]
-  review     Review?
-  totalPrice Decimal     @db.Decimal(10, 2)
-  status     OrderStatus @default(PENDING)
-  address    String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  review            Review?
+  totalPrice        Decimal     @db.Decimal(10, 2)
+  deliveryFee       Decimal     @default(40.00) @db.Decimal(10, 2)
+  status            OrderStatus @default(PENDING)
+  address           String?
+  deviceFingerprint String?
+  rejectReason      String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([deviceFingerprint])
 }
 
 model OrderItem {

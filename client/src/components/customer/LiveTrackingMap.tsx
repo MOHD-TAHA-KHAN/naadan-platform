@@ -126,6 +126,8 @@ function MapRouteContent({
     }
   }, [routesLibrary, map])
 
+  const fallbackPolylineRef = useState<google.maps.Polyline | null>(null)
+
   // Calculate driving directions between Sadar kitchen and customer coordinates
   useEffect(() => {
     if (!directionsService || !directionsRenderer) return
@@ -148,12 +150,24 @@ function MapRouteContent({
         if (routeStatus === "OK" && result) {
           directionsRenderer.setDirections(result)
         } else {
-          // Fallback bounds if Directions API fails or offline
-          if (map) {
+          // Fallback route polyline and bounds if Directions API fails or offline
+          if (map && window.google?.maps?.Polyline) {
+            const fallbackLine = new window.google.maps.Polyline({
+              path: [kitchenCoords, customerCoords],
+              geodesic: true,
+              strokeColor: "#EA580C",
+              strokeOpacity: 0.85,
+              strokeWeight: 4,
+              map,
+            })
             const bounds = new google.maps.LatLngBounds()
             bounds.extend(kitchenCoords)
             bounds.extend(customerCoords)
             map.fitBounds(bounds, 50)
+
+            return () => {
+              fallbackLine.setMap(null)
+            }
           }
         }
       }

@@ -12,6 +12,7 @@ const statusMeta: Record<OrderStatus, { label: string; tone: string; accent: str
   OUT_FOR_DELIVERY: { label: "Out",            tone: "bg-[#e5d2ff]/35 text-[#3a0f80]", accent: "border-l-[#e5d2ff]" },
   DELIVERED:        { label: "Delivered",      tone: "bg-[#cde6d5] text-[#063722]", accent: "border-l-[#cde6d5]" },
   CANCELLED:        { label: "Cancelled",      tone: "bg-[#ffd4d4] text-[#6b0e0e]", accent: "border-l-[#ffd4d4]" },
+  REJECTED:         { label: "Auto-Rejected",  tone: "bg-[#ffdad6] text-[#ba1a1a]", accent: "border-l-[#ba1a1a]" },
 }
 
 export function TicketCard({
@@ -96,6 +97,32 @@ export function TicketCard({
             <a href={`tel:${cleanPhone}`} className="hover:underline font-medium text-[#002211]">
               {cleanPhone}
             </a>
+          </div>
+        )}
+
+        {/* Live Porter Rider & Tracking details on ticket */}
+        {(ticket.trackingUrl || ticket.riderPhone) && (
+          <div className="mt-1 pt-1.5 border-t border-[#f1ede6] flex items-center justify-between text-xs bg-[#f4eefd]/70 px-2.5 py-1.5 rounded-lg border border-[#3a0f80]/15">
+            <div className="flex items-center gap-1.5 text-[#3a0f80]">
+              <span className="material-symbols-outlined text-[15px]">electric_moped</span>
+              <span className="font-bold text-[11px]">{ticket.riderName || "Porter Rider"}</span>
+              {ticket.riderPhone && (
+                <a href={`tel:${ticket.riderPhone}`} className="hover:underline text-[10px] opacity-80">
+                  ({ticket.riderPhone})
+                </a>
+              )}
+            </div>
+            {ticket.trackingUrl && (
+              <a
+                href={ticket.trackingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-bold text-[#3a0f80] underline flex items-center gap-0.5"
+              >
+                Track
+                <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+              </a>
+            )}
           </div>
         )}
       </section>

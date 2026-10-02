@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { CustomerFooter } from "@/components/customer/footer"
-import { OrderList } from "@/components/customer/order-list"
+import { OrderHistory } from "@/components/customer/OrderHistory"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Order History | Naadan" }
@@ -16,21 +16,64 @@ export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
     where: { userId: session.user.id },
     include: {
-      items: true,
+      items: {
+        include: {
+          menuItem: {
+            select: { imageUrl: true },
+          },
+        },
+      },
       review: true,
     },
     orderBy: { createdAt: "desc" },
   })
 
-  // Convert Decimal objects to plain numbers for Client Component serialization
-  const serializedOrders = orders.map((order) => ({
-    ...order,
-    totalPrice: Number(order.totalPrice),
-    items: order.items.map((item) => ({
-      ...item,
-      priceAtOrder: Number(item.priceAtOrder),
-    })),
-  }))
+  // Format orders cleanly for the Client Component
+  const formattedOrders = orders.map((order) => {
+    let cleanAddress = order.address || ""
+    let cleanPhone = ""
+    let distanceKm: string | undefined
+
+    try {
+      if (order.address?.startsWith("{")) {
+        const parsed = JSON.parse(order.address)
+        cleanAddress = parsed?.drop?.address || order.address
+        cleanPhone = parsed?.drop?.phone || ""
+        distanceKm = parsed?.distanceKm
+      }
+    } catch {
+      // keep as is
+    }
+
+    return {
+      id: order.id,
+      orderNumber: order.id.slice(-6).toUpperCase(),
+      totalPrice: Number(order.totalPrice),
+      deliveryFee: Number(order.deliveryFee ?? 40),
+      status: order.status,
+      rejectReason: order.rejectReason,
+      address: cleanAddress,
+      customerPhone: cleanPhone,
+      distanceKm,
+      createdAt: order.createdAt.toISOString(),
+      items: order.items.map((item) => ({
+        id: item.id,
+        menuItemId: item.menuItemId,
+        name: item.nameAtOrder,
+        quantity: item.quantity,
+        price: Number(item.priceAtOrder),
+        imageUrl: item.menuItem?.imageUrl,
+      })),
+      review: order.review
+        ? {
+            id: order.review.id,
+            rating: order.review.rating,
+            comment: order.review.comment,
+            createdAt: order.review.createdAt.toISOString(),
+          }
+        : null,
+    }
+  })
 
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
@@ -51,14 +94,14 @@ export default async function OrdersPage() {
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
-              My Orders
+              My Orders &amp; Feasts
             </h1>
             <p className="text-[#717972] text-sm mt-1">
-              View your past orders and leave reviews
+              View your past orders, delivery tracking, re-order your favorites, and leave reviews
             </p>
           </div>
 
-          <OrderList orders={serializedOrders} />
+          <OrderHistory orders={formattedOrders} />
         </div>
       </main>
       <CustomerFooter />

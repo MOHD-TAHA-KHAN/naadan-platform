@@ -12,6 +12,7 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus | null> = {
   OUT_FOR_DELIVERY: "DELIVERED",
   DELIVERED: null,
   CANCELLED: null,
+  REJECTED: null,
 }
 
 const ACTION_LABELS: Record<OrderStatus, string> = {
@@ -21,6 +22,7 @@ const ACTION_LABELS: Record<OrderStatus, string> = {
   OUT_FOR_DELIVERY: "Mark Delivered",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
+  REJECTED: "Rejected",
 }
 
 const TONES: Record<OrderStatus, string> = {
@@ -30,6 +32,7 @@ const TONES: Record<OrderStatus, string> = {
   OUT_FOR_DELIVERY: "bg-[#3a0f80] hover:bg-[#250854] text-[#e5d2ff]",
   DELIVERED: "bg-[#cde6d5] text-[#063722]",
   CANCELLED: "bg-[#ffd4d4] text-[#6b0e0e]",
+  REJECTED: "bg-[#ffdad6] text-[#ba1a1a]",
 }
 
 export function OrderStatusToggle({

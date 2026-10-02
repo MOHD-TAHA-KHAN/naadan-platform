@@ -58,6 +58,19 @@ async function main() {
     create: { email: adminEmail, name: "Naadan Admin", password: hashed, role: Role.ADMIN },
   })
 
+  const customerEmail = "customer@naadan.com"
+  await prisma.user.upsert({
+    where: { email: customerEmail },
+    update: { name: "Naadan Customer", password: hashed, role: Role.USER },
+    create: {
+      email: customerEmail,
+      name: "Naadan Customer",
+      password: hashed,
+      phone: "9876543210",
+      role: Role.USER,
+    },
+  })
+
   const categoriesData = [
     {
       name: "Naadan Special Rolls",

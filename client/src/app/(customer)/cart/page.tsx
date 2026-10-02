@@ -5,7 +5,8 @@ import { CustomerHeader } from "@/components/customer/customer-header"
 import { CustomerFooter } from "@/components/customer/footer"
 import { CartItemRow } from "@/components/customer/cart-item-row"
 import { CheckoutForm } from "@/components/customer/checkout-form"
-import { FOOD_GST_PERCENT } from "@/lib/constants"
+import { OrderSummary } from "@/components/customer/OrderSummary"
+import { CartProvider } from "@/context/CartContext"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Cart & Checkout | Naadan" }
@@ -15,11 +16,21 @@ export default async function CartPage() {
   if (!session?.user) redirect("/login")
   if (session.user.role === "ADMIN") redirect("/admin")
 
-  const cartItems = await prisma.cartItem.findMany({
-    where: { userId: session.user.id },
-    include: { menuItem: true },
-    orderBy: { createdAt: "asc" },
-  })
+  const [cartItems, userProfile, savedAddresses] = await Promise.all([
+    prisma.cartItem.findMany({
+      where: { userId: session.user.id },
+      include: { menuItem: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { phone: true },
+    }),
+    prisma.savedAddress.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    }),
+  ])
 
   // Convert Prisma Decimal price to standard number before passing to Client Components
   const serializedItems = cartItems.map((ci) => ({
@@ -31,13 +42,17 @@ export default async function CartPage() {
     },
   }))
 
-  const itemTotal = serializedItems.reduce(
-    (sum, ci) => sum + ci.menuItem.price * ci.quantity,
-    0
-  )
-  const gstAmount = Math.round(itemTotal * (FOOD_GST_PERCENT / 100))
-  const deliveryFee = itemTotal > 0 ? 40 : 0
-  const grandTotal = itemTotal + gstAmount + deliveryFee
+  const serializedAddresses = savedAddresses.map((sa) => ({
+    id: sa.id,
+    userId: sa.userId,
+    label: sa.label,
+    flatDetails: sa.flatDetails,
+    street: sa.street,
+    fullAddress: sa.fullAddress,
+    lat: sa.lat,
+    lng: sa.lng,
+    isDefault: sa.isDefault,
+  }))
 
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
@@ -105,74 +120,52 @@ export default async function CartPage() {
               </a>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left — cart items */}
-              <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
-                <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-bold text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
-                      Your Order ({serializedItems.length} {serializedItems.length === 1 ? "item" : "items"})
-                    </h2>
-                    <a href="/menu" className="text-xs font-semibold text-[#7b5900] hover:underline">
-                      + Add more items
-                    </a>
+            <CartProvider
+              initialItems={serializedItems as any}
+              initialSavedAddresses={serializedAddresses}
+              initialPhone={userProfile?.phone || ""}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Left — cart items */}
+                <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+                  <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6 border border-[#f1ede6]">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-bold text-[#002211]" style={{ fontFamily: "Playfair Display, serif" }}>
+                        Your Order ({serializedItems.length} {serializedItems.length === 1 ? "item" : "items"})
+                      </h2>
+                      <a href="/menu" className="text-xs font-semibold text-[#7b5900] hover:underline">
+                        + Add more items
+                      </a>
+                    </div>
+                    <div className="flex flex-col gap-4 divide-y divide-[#f1ede6]">
+                      {serializedItems.map((ci) => (
+                        <CartItemRow key={ci.id} cartItem={ci} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-4 divide-y divide-[#f1ede6]">
-                    {serializedItems.map((ci) => (
-                      <CartItemRow key={ci.id} cartItem={ci} />
-                    ))}
+
+                  {/* Eco packaging note */}
+                  <div className="bg-[#f7f3eb] rounded-xl p-4 flex items-start gap-3 border border-[#c0c9c0]/30">
+                    <span className="material-symbols-outlined text-[22px] text-[#38684c] shrink-0 mt-0.5">inventory_2</span>
+                    <div>
+                      <p className="text-sm font-semibold text-[#002211]">Earthen Pot Dum Delivery</p>
+                      <p className="text-xs text-[#717972] mt-0.5">
+                        Delivered steaming hot in reusable unglazed terracotta pots. Heat-sealed with palm leaves.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Eco packaging note */}
-                <div className="bg-[#f7f3eb] rounded-xl p-4 flex items-start gap-3 border border-[#c0c9c0]/30">
-                  <span className="material-symbols-outlined text-[22px] text-[#38684c] shrink-0 mt-0.5">inventory_2</span>
-                  <div>
-                    <p className="text-sm font-semibold text-[#002211]">Earthen Pot Dum Delivery</p>
-                    <p className="text-xs text-[#717972] mt-0.5">
-                      Delivered steaming hot in reusable unglazed terracotta pots. Heat-sealed with palm leaves.
-                    </p>
-                  </div>
+                {/* Right — Single source of truth synchronized summary + checkout */}
+                <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 lg:sticky lg:top-24">
+                  {/* Master Order Summary component directly wired to CartContext */}
+                  <OrderSummary />
+
+                  {/* Checkout Form directly wired to CartContext */}
+                  <CheckoutForm />
                 </div>
               </div>
-
-              {/* Right — summary + checkout */}
-              <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 lg:sticky lg:top-24">
-                <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6">
-                  <h3 className="font-bold text-[#002211] mb-4" style={{ fontFamily: "Playfair Display, serif" }}>
-                    Order Summary
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    {serializedItems.map((ci) => (
-                      <div key={ci.id} className="flex justify-between text-[#414942]">
-                        <span className="line-clamp-1">{ci.menuItem.name} × {ci.quantity}</span>
-                        <span className="font-medium text-[#002211] shrink-0 ml-2">
-                          ₹{(Number(ci.menuItem.price) * ci.quantity).toFixed(0)}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="border-t border-[#f1ede6] pt-3 flex justify-between text-[#414942]">
-                      <span>Item Total</span>
-                      <span className="font-medium text-[#002211]">₹{itemTotal.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between text-[#414942]">
-                      <span>Taxes &amp; Charges (5% GST)</span>
-                      <span className="font-medium text-[#002211]">₹{gstAmount.toFixed(0)}</span>
-                    </div>
-                    <div className="flex justify-between text-[#414942]">
-                      <span>Delivery Partner Fee</span>
-                      <span className="font-medium text-[#002211]">₹{deliveryFee}</span>
-                    </div>
-                    <div className="border-t border-[#f1ede6] pt-3 flex justify-between font-bold text-[#002211]">
-                      <span>Total Payable</span>
-                      <span>₹{grandTotal.toFixed(0)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <CheckoutForm items={serializedItems.map(ci => ({ price: ci.menuItem.price, quantity: ci.quantity, name: ci.menuItem.name }))} />
-              </div>
-            </div>
+            </CartProvider>
           )}
         </div>
       </main>

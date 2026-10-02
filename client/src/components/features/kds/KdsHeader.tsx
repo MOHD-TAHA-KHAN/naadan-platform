@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui"
 import { KdsSocket } from "./KdsSocket"
+import { AdminBuzzerAlert } from "@/components/admin/AdminBuzzerAlert"
 
 export function KdsHeader({ activeCount }: { activeCount: number }) {
   return (
@@ -13,7 +14,10 @@ export function KdsHeader({ activeCount }: { activeCount: number }) {
           {activeCount} active
         </Badge>
       </div>
-      <KdsSocket initialActiveCount={activeCount} />
+      <div className="flex items-center gap-4">
+        <AdminBuzzerAlert />
+        <KdsSocket initialActiveCount={activeCount} />
+      </div>
     </header>
   )
 }

@@ -45,15 +45,18 @@ const BANNER_MESSAGE: Record<string, string> = {
   CANCELLED: "This order was cancelled.",
 }
 
+import { KITCHEN_COORDS } from "@/lib/constants"
+
 export default async function TrackOrderPage({
   params,
 }: {
-  params: Promise<{ orderId: string }>
+  params: Promise<{ id?: string; orderId?: string }>
 }) {
   const session = await auth()
   if (!session?.user) redirect("/login")
 
-  const { orderId } = await params
+  const resolvedParams = await params
+  const orderId = resolvedParams.id || resolvedParams.orderId!
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -73,21 +76,44 @@ export default async function TrackOrderPage({
 
   let displayAddress = ""
   let customerCoords: { lat: number; lng: number } | null = null
-  let kitchenCoords = { lat: 21.1594, lng: 79.0825 } // Sadar, Nagpur
+  let kitchenCoords = KITCHEN_COORDS // Sadar, Nagpur: { lat: 21.1643, lng: 79.0772 }
 
-  try {
-    const rawAddr = (order as any).deliveryAddress || order.address
-    const parsed = typeof rawAddr === "string" ? JSON.parse(rawAddr) : rawAddr
+  const rawAddr = (order as any).deliveryAddress || order.address
 
-    displayAddress = parsed?.drop?.address || parsed?.address || rawAddr || ""
-    if (parsed?.drop?.lat && parsed?.drop?.lng) {
-      customerCoords = { lat: Number(parsed.drop.lat), lng: Number(parsed.drop.lng) }
+  if (rawAddr) {
+    try {
+      const parsed = typeof rawAddr === "string" ? JSON.parse(rawAddr) : rawAddr
+      if (parsed && typeof parsed === "object") {
+        displayAddress =
+          parsed.drop?.address ||
+          parsed.streetAddress ||
+          parsed.fullAddress ||
+          parsed.address ||
+          ""
+        if (parsed.drop?.lat != null && parsed.drop?.lng != null) {
+          customerCoords = { lat: Number(parsed.drop.lat), lng: Number(parsed.drop.lng) }
+        } else if (parsed.lat != null && parsed.lng != null) {
+          customerCoords = { lat: Number(parsed.lat), lng: Number(parsed.lng) }
+        }
+        if (parsed.pickup?.lat != null && parsed.pickup?.lng != null) {
+          kitchenCoords = { lat: Number(parsed.pickup.lat), lng: Number(parsed.pickup.lng) }
+        }
+      } else {
+        displayAddress = String(rawAddr)
+      }
+    } catch {
+      displayAddress = typeof rawAddr === "string" ? rawAddr : "Address details unavailable"
     }
-    if (parsed?.pickup?.lat && parsed?.pickup?.lng) {
-      kitchenCoords = { lat: Number(parsed.pickup.lat), lng: Number(parsed.pickup.lng) }
+  }
+
+  // Prevent any raw JSON string from ever being shown in "Delivering to:"
+  if (displayAddress.trim().startsWith("{") && displayAddress.includes("}")) {
+    try {
+      const parsedInner = JSON.parse(displayAddress)
+      displayAddress = parsedInner?.drop?.address || parsedInner?.address || "Address details unavailable"
+    } catch {
+      displayAddress = "Address details unavailable"
     }
-  } catch {
-    displayAddress = (order as any).deliveryAddress || order.address || "Address details unavailable"
   }
 
   return (

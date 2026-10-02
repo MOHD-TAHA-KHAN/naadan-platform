@@ -28,6 +28,19 @@ export function calculateDistance(
   return R * c
 }
 
+/**
+ * Calculates delivery fee based on distance:
+ * - Base ₹40 for up to 3km
+ * - ₹10 per km beyond 3km
+ * - Maximum cap of ₹100
+ */
+export function calculateDeliveryFee(distanceKm?: string | number | null): number {
+  if (distanceKm === null || distanceKm === undefined) return 40
+  const dist = typeof distanceKm === "string" ? parseFloat(distanceKm) : distanceKm
+  if (isNaN(dist) || dist <= 3) return 40
+  return Math.min(100, Math.round(40 + (dist - 3) * 10))
+}
+
 export interface AddressValidationResult {
   isValid: boolean
   error?: string
@@ -124,9 +137,20 @@ export function validateDeliveryAddress(
   }
 
   // 6. Fail validation if any single word lacks vowels completely (e.g. "sdfghjkl", "bcdfghjk")
-  // Allows single letter identifiers (e.g. "Wing B", "Plot C") and common abbreviations ("St", "Rd", "Bldg")
-  const commonNoVowelAbbrs = new Set(["st", "rd", "dr", "nr", "pl", "bldg", "blk", "flr"])
+  // Allows single letter identifiers (e.g. "Wing B", "Plot C"), common abbreviations ("St", "Rd", "Bldg"),
+  // Google Plus Codes (e.g. "538G+7HX"), and alphanumeric codes (e.g. "T45", "B-4", "Flat 302")
+  const commonNoVowelAbbrs = new Set(["st", "rd", "dr", "nr", "pl", "bldg", "blk", "flr", "gf", "ff", "sf", "tf", "ph"])
   const hasNoVowelWord = words.some((word) => {
+    // Bypass Google Plus Codes (e.g. "538G+7HX" or tokens matching Plus Code pattern)
+    if (/[A-Z0-9]{4,}\+[A-Z0-9]{2,}/i.test(word) || (word.includes("+") && /[A-Z0-9]/i.test(word))) {
+      return false
+    }
+
+    // Bypass alphanumeric codes and numbers (e.g. unit/block numbers like "B-4", "T45", "Flat 302")
+    if (/\d/.test(word)) {
+      return false
+    }
+
     const letters = word.replace(/[^a-zA-Z]/g, "")
     if (letters.length <= 1) return false
     if (commonNoVowelAbbrs.has(letters.toLowerCase())) return false
@@ -157,6 +181,9 @@ export function validateDeliveryAddress(
 
   // 9. Check for pure consonant mash (6+ consecutive consonants across word parts)
   const hasConsonantMash = words.some((word) => {
+    if (/[A-Z0-9]{4,}\+[A-Z0-9]{2,}/i.test(word) || (word.includes("+") && /[A-Z0-9]/i.test(word)) || /\d/.test(word)) {
+      return false
+    }
     const letters = word.replace(/[^a-zA-Z]/g, "")
     return letters.length >= 6 && !/[aeiouy]/i.test(letters)
   })

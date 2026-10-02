@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { io, Socket } from "socket.io-client"
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000"
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL && !process.env.NEXT_PUBLIC_SOCKET_URL.includes("3000")
+    ? process.env.NEXT_PUBLIC_SOCKET_URL
+    : "http://localhost:5000"
 
 export function useKdsSocket(initialActiveCount: number) {
   const router = useRouter()

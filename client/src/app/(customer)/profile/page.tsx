@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { CustomerFooter } from "@/components/customer/footer"
 import { ProfileForm } from "@/components/shared/profile-form"
+import { SavedAddressesManager } from "@/components/customer/SavedAddressesManager"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Profile | Naadan" }
@@ -13,15 +14,33 @@ export default async function ProfilePage() {
   if (!session?.user) redirect("/login")
   if (session.user.role === "ADMIN") redirect("/admin")
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      name: true,
-      phone: true,
-      address: true,
-      image: true,
-    },
-  })
+  const [user, savedAddresses] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        name: true,
+        phone: true,
+        address: true,
+        image: true,
+      },
+    }),
+    prisma.savedAddress.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    }),
+  ])
+
+  const serializedAddresses = savedAddresses.map((sa) => ({
+    id: sa.id,
+    userId: sa.userId,
+    label: sa.label,
+    flatDetails: sa.flatDetails,
+    street: sa.street,
+    fullAddress: sa.fullAddress,
+    lat: sa.lat,
+    lng: sa.lng,
+    isDefault: sa.isDefault,
+  }))
 
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
@@ -45,11 +64,14 @@ export default async function ProfilePage() {
               My Profile
             </h1>
             <p className="text-[#717972] text-sm mt-1">
-              Manage your personal information and preferences
+              Manage your personal information, delivery addresses, and preferences
             </p>
           </div>
 
           <ProfileForm initialData={user || undefined} />
+
+          {/* Saved Addresses Section */}
+          <SavedAddressesManager initialAddresses={serializedAddresses} />
         </div>
       </main>
       <CustomerFooter />

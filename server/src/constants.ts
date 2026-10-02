@@ -1,4 +1,4 @@
-export const KITCHEN_COORDS = { lat: 21.1594, lng: 79.0825 }; // Sadar, Nagpur
+export const KITCHEN_COORDS = { lat: 21.1643, lng: 79.0772 }; // Sadar, Nagpur
 export const KITCHEN_NAME = "Naadan Cloud Kitchen (Sadar, Nagpur)";
 export const KITCHEN_LOCALITY = "Sadar";
 export const KITCHEN_PHONE = "+919876543210";

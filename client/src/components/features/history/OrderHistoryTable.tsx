@@ -18,6 +18,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   OUT_FOR_DELIVERY: "bg-purple-100 text-purple-800",
   DELIVERED: "bg-green-100 text-green-800",
   CANCELLED: "bg-red-100 text-red-800",
+  REJECTED: "bg-red-100 text-red-900",
 }
 
 export function OrderHistoryTable({ tickets }: OrderHistoryTableProps) {
