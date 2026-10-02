@@ -2,11 +2,13 @@ import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 
+// Only load required font weights for better performance
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
   preload: true,
+  weight: ["400", "500", "600", "700"],
 })
 
 const playfair = Playfair_Display({
@@ -14,6 +16,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
   display: "swap",
   preload: true,
+  weight: ["400", "500", "600", "700"],
 })
 
 export const metadata: Metadata = {
