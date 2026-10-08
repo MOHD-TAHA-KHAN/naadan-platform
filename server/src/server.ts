@@ -7,6 +7,7 @@ import { WebSocketServer } from "ws"
 import { prisma } from "./db/prisma"
 import type { KdsTicket, OrderStatus } from "./types"
 import deliveryRouter from "./routes/delivery"
+import authRouter from "./routes/auth"
 
 import {
   deviceFingerprintMiddleware,
@@ -106,6 +107,7 @@ app.use(express.json())
 app.use(deviceFingerprintMiddleware)
 
 app.use("/api/delivery", deliveryRouter)
+app.use("/api/auth", authRouter)
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, port: PORT })
