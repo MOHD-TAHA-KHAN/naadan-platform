@@ -8,6 +8,7 @@ import { prisma } from "./db/prisma"
 import type { KdsTicket, OrderStatus } from "./types"
 import deliveryRouter from "./routes/delivery"
 import authRouter from "./routes/auth"
+import { rateLimiter } from "./middleware/rateLimiter"
 
 import {
   deviceFingerprintMiddleware,
@@ -99,15 +100,34 @@ async function fetchOrdersData() {
   return { orders: formatted, activeTickets, pastTickets }
 }
 
+const allowedOriginRegex = /^https:\/\/naadan-.*\.vercel\.app$/
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (
+      allowedOriginRegex.test(origin) ||
+      origin === process.env.CLIENT_URL ||
+      origin === "https://naadan.in" ||
+      origin === "https://www.naadan.in" ||
+      (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost:"))
+    ) {
+      return callback(null, true)
+    }
+    return callback(null, false)
+  },
+  credentials: true,
+}
+
 const app = express()
-app.use(cors({ origin: "*" }))
+app.use(cors(corsOptions))
 app.use(express.json())
 
 // Apply device fingerprinting & anti-spam middleware globally
 app.use(deviceFingerprintMiddleware)
 
-app.use("/api/delivery", deliveryRouter)
-app.use("/api/auth", authRouter)
+app.use("/api/delivery", rateLimiter({ max: 20 }), deliveryRouter)
+app.use("/api/auth", rateLimiter({ max: 10 }), authRouter)
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, port: PORT })
@@ -345,7 +365,20 @@ const server = http.createServer(app)
 // Attach Socket.io with websocket + polling transports and CORS
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "*",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      if (
+        allowedOriginRegex.test(origin) ||
+        origin === process.env.CLIENT_URL ||
+        origin === "https://naadan.in" ||
+        origin === "https://www.naadan.in" ||
+        (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost:"))
+      ) {
+        return callback(null, true)
+      }
+      return callback(new Error("Not allowed by CORS"))
+    },
+    credentials: true,
     methods: ["GET", "POST", "PATCH"],
   },
   transports: ["websocket", "polling"],

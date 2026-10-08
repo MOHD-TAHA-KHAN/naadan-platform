@@ -3,7 +3,7 @@
 import { useCart } from "@/context/CartContext"
 
 export function OrderSummary() {
-  const { items, itemTotal, gstAmount, deliveryFee, grandTotal, distanceKm } = useCart()
+  const { items, itemTotal, gstAmount, deliveryFee, grandTotal, distanceKm, isCalculatingEta } = useCart()
 
   return (
     <div className="bg-[#ffffff] rounded-2xl shadow-sm p-6 border border-[#f1ede6]">
@@ -49,12 +49,16 @@ export function OrderSummary() {
               </span>
             )}
           </div>
-          <span className="font-medium text-[#002211] font-mono">₹{deliveryFee}</span>
+          <span className="font-medium text-[#002211] font-mono">
+            {isCalculatingEta ? "..." : `₹${deliveryFee}`}
+          </span>
         </div>
 
         <div className="border-t border-[#f1ede6] pt-3 flex justify-between items-baseline font-bold text-[#002211]">
           <span className="text-base">Total Payable</span>
-          <span className="text-lg text-[#033921] font-mono">₹{grandTotal.toFixed(0)}</span>
+          <span className="text-lg text-[#033921] font-mono">
+            {isCalculatingEta ? "..." : `₹${grandTotal.toFixed(0)}`}
+          </span>
         </div>
       </div>
     </div>

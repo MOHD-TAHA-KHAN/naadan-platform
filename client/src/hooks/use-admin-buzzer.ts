@@ -134,7 +134,7 @@ export function useAdminBuzzer({
   useEffect(() => {
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     })
     socketRef.current = socket
 

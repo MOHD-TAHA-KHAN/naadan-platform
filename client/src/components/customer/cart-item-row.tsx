@@ -53,7 +53,13 @@ export function CartItemRow({ cartItem }: CartItemRowProps) {
         >
           <span className="material-symbols-outlined text-[16px] text-[#002211]">remove</span>
         </button>
-        <span className="w-6 text-center font-semibold text-sm text-[#002211]">{cartItem.quantity}</span>
+        <span className="w-6 text-center font-semibold text-sm text-[#002211]">
+          {isPending ? (
+            <span className="material-symbols-outlined text-[14px] animate-spin text-[#717972]">progress_activity</span>
+          ) : (
+            cartItem.quantity
+          )}
+        </span>
         <button
           onClick={() => startTransition(async () => { await updateCartQty(cartItem.id, cartItem.quantity + 1) })}
           disabled={isPending}
@@ -72,7 +78,7 @@ export function CartItemRow({ cartItem }: CartItemRowProps) {
           disabled={isPending}
           className="text-[10px] text-[#ba1a1a] hover:underline mt-0.5 disabled:opacity-40"
         >
-          Remove
+          {isPending ? "Removing..." : "Remove"}
         </button>
       </div>
     </div>

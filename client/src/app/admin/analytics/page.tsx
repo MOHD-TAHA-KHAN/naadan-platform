@@ -18,10 +18,7 @@ export default async function AdminAnalyticsPage() {
     totalRevenue,
     todayRevenue,
     weekRevenue,
-    totalOrders,
     todayOrders,
-    deliveredOrders,
-    cancelledOrders,
     totalUsers,
     topItems,
     ordersByStatus,
@@ -29,10 +26,7 @@ export default async function AdminAnalyticsPage() {
     prisma.order.aggregate({ where: { status: { not: "CANCELLED" } }, _sum: { totalPrice: true } }),
     prisma.order.aggregate({ where: { status: { not: "CANCELLED" }, createdAt: { gte: todayStart } }, _sum: { totalPrice: true } }),
     prisma.order.aggregate({ where: { status: { not: "CANCELLED" }, createdAt: { gte: weekStart } }, _sum: { totalPrice: true } }),
-    prisma.order.count(),
     prisma.order.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.order.count({ where: { status: "DELIVERED" } }),
-    prisma.order.count({ where: { status: "CANCELLED" } }),
     prisma.user.count({ where: { role: "USER" } }),
     prisma.orderItem.groupBy({
       by: ["menuItemId"],
@@ -42,6 +36,11 @@ export default async function AdminAnalyticsPage() {
     }),
     prisma.order.groupBy({ by: ["status"], _count: { status: true } }),
   ])
+
+  const statusMap = new Map(ordersByStatus.map((s) => [s.status, s._count.status]))
+  const totalOrders = ordersByStatus.reduce((acc, s) => acc + s._count.status, 0)
+  const deliveredOrders = statusMap.get("DELIVERED") ?? 0
+  const cancelledOrders = statusMap.get("CANCELLED") ?? 0
 
   // Fetch top item names in a single query
   const menuItemIds = topItems.map(item => item.menuItemId)

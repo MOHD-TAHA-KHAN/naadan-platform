@@ -16,11 +16,13 @@ const OrderHistoryTable = dynamic(
 export default function AdminOrdersPage() {
   const [activeTickets, setActiveTickets] = useState<KdsTicket[]>([])
   const [pastTickets, setPastTickets] = useState<KdsTicket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   // 1. Dual Hydration: Initial REST fetch on mount to immediately populate KDS board
   useEffect(() => {
     async function fetchOrders() {
       try {
+        setIsLoading(true)
         const backendUrl =
           process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes("3000")
             ? process.env.NEXT_PUBLIC_API_URL
@@ -37,6 +39,8 @@ export default function AdminOrdersPage() {
         }
       } catch (err) {
         console.error("[admin/orders] Failed to load initial KDS orders:", err)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -52,7 +56,7 @@ export default function AdminOrdersPage() {
 
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     })
 
     // Add new tickets to 'Order Received' (PENDING) column
@@ -79,8 +83,19 @@ export default function AdminOrdersPage() {
         <KdsHeader activeCount={activeTickets.length} />
         <main className="pt-16 p-6 min-h-screen">
           <KdsBoardIntro />
-          <OrderQueue tickets={activeTickets} />
-          <OrderHistoryTable tickets={pastTickets} />
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-[#717972]">
+              <span className="material-symbols-outlined text-[32px] text-[#033921] animate-spin mb-2">
+                progress_activity
+              </span>
+              <p className="text-sm font-semibold">Loading KDS tickets...</p>
+            </div>
+          ) : (
+            <>
+              <OrderQueue tickets={activeTickets} />
+              <OrderHistoryTable tickets={pastTickets} />
+            </>
+          )}
         </main>
       </div>
     </div>

@@ -3,8 +3,8 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { CustomerFooter } from "@/components/customer/footer"
-import { AddToCartButton } from "@/components/customer/add-to-cart-button"
 import { CategoryFilter } from "@/components/customer/category-filter"
+import { MenuItemList } from "@/components/customer/menu-item-list"
 import Image from "next/image"
 import type { Metadata } from "next"
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Menu | Naadan" }
 export default async function MenuPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>
+  searchParams: Promise<{ category?: string; page?: string }>
 }) {
   const session = await auth()
   if (!session?.user) redirect("/login")
@@ -22,25 +22,32 @@ export default async function MenuPage({
   const params = await searchParams
   const activeCategory = params.category ?? "all"
 
-  const [categoriesWithItems, cartCount] = await Promise.all([
+  const [categories, cartCount, initialMenuItems] = await Promise.all([
     prisma.category.findMany({
-      include: { menuItems: { where: { available: true }, orderBy: { name: "asc" } } },
       orderBy: { name: "asc" },
+      select: { id: true, name: true },
     }),
     prisma.cartItem.count({ where: { userId: session.user.id } }),
+    prisma.menuItem.findMany({
+      where: {
+        available: true,
+        ...(activeCategory !== "all" ? { categoryId: activeCategory } : {}),
+      },
+      include: { category: { select: { name: true } } },
+      orderBy: { name: "asc" },
+      take: 20,
+      skip: 0,
+    }),
   ])
 
-  const allItems = categoriesWithItems.flatMap((c) =>
-    c.menuItems.map((item) => ({ ...item, categoryName: c.name }))
-  )
-
-  const filtered =
-    activeCategory === "all"
-      ? allItems
-      : allItems.filter((i) => {
-          const cat = categoriesWithItems.find((c) => c.id === activeCategory)
-          return cat?.menuItems.some((m) => m.id === i.id)
-        })
+  const initialItems = initialMenuItems.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: Number(item.price),
+    imageUrl: item.imageUrl,
+    categoryName: item.category?.name ?? "General",
+  }))
 
   return (
     <div className="min-h-screen bg-[#fdf9f1]">
@@ -160,71 +167,15 @@ export default async function MenuPage({
 
             {/* Category filter tabs */}
             <CategoryFilter
-              categories={categoriesWithItems.map((c) => ({ id: c.id, name: c.name }))}
+              categories={categories.map((c) => ({ id: c.id, name: c.name }))}
               activeCategory={activeCategory}
             />
 
             {/* Menu Grid */}
-            {filtered.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                {filtered.map((item) => (
-                  <article
-                    key={item.id}
-                    className="flex flex-col justify-between bg-[#ffffff] rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 border border-[#f1ede6]"
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="relative w-full h-52 rounded-xl overflow-hidden bg-[#f1ede6]">
-                        {item.imageUrl ? (
-                          <Image
-                            src={item.imageUrl}
-                            alt={item.name}
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-500"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[48px] text-[#c0c9c0]">restaurant</span>
-                          </div>
-                        )}
-                        <div className="absolute top-3 left-3 bg-[#ffffff]/90 backdrop-blur-sm px-2 py-0.5 rounded-md text-[11px] font-semibold text-[#414942]">
-                          {item.categoryName}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3
-                          className="font-bold text-lg text-[#002211] leading-tight"
-                          style={{ fontFamily: "Playfair Display, serif" }}
-                        >
-                          {item.name}
-                        </h3>
-                        {item.description && (
-                          <p className="text-xs text-[#717972] line-clamp-2 mt-1">{item.description}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#f1ede6]">
-                      <div>
-                        <div className="text-lg font-bold text-[#002211]">
-                          ₹{Number(item.price).toFixed(0)}
-                        </div>
-                      </div>
-                      <AddToCartButton menuItemId={item.id} itemName={item.name} />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl border-2 border-dashed border-[#c0c9c0] p-12 text-center">
-                <span className="material-symbols-outlined text-[48px] text-[#c0c9c0] block mb-3">restaurant_menu</span>
-                <h3 className="font-semibold text-[#002211]">No items in this category yet</h3>
-                <p className="text-sm text-[#717972] mt-1">
-                  Run <code className="font-mono bg-[#f1ede6] px-1 rounded">npx prisma db seed</code> to populate the menu.
-                </p>
-              </div>
-            )}
+            <MenuItemList
+              initialItems={initialItems}
+              activeCategory={activeCategory}
+            />
           </div>
         </section>
       </main>

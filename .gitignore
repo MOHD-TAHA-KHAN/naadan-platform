@@ -9,3 +9,11 @@ build/
 
 client/.env
 server/.env
+
+client/.vscode/
+client/.agents/
+client/.claude/
+client/.gemini/
+client/.opencode/
+client/.cursor/
+client/.codex/

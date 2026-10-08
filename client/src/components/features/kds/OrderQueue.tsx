@@ -16,11 +16,13 @@ const STAGE_HEADERS: Record<(typeof STAGES)[number], { label: string; tint: stri
 
 export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicket[] }) {
   const [orders, setOrders] = useState<KdsTicket[]>(initialTickets)
+  const [isLoading, setIsLoading] = useState(initialTickets.length === 0)
 
   // 1. Dual Hydration: Initial REST Fetch on mount
   useEffect(() => {
     async function fetchActiveOrders() {
       try {
+        setIsLoading(true)
         const apiUrl =
           process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes("3000")
             ? process.env.NEXT_PUBLIC_API_URL
@@ -33,6 +35,8 @@ export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicke
         }
       } catch (err) {
         console.error("Failed to load initial KDS orders", err)
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchActiveOrders()
@@ -47,7 +51,7 @@ export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicke
 
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     })
 
     socket.on("order:created", (order: KdsTicket) => {
@@ -97,7 +101,14 @@ export function OrderQueue({ tickets: initialTickets = [] }: { tickets: KdsTicke
               </span>
             </header>
             <div className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
-              {stageTickets.length === 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 text-[#717972]">
+                  <span className="material-symbols-outlined text-[28px] text-[#033921] animate-spin mb-1">
+                    progress_activity
+                  </span>
+                  <p className="text-[12px] font-medium">Loading tickets...</p>
+                </div>
+              ) : stageTickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-[#717972]">
                   <span className="material-symbols-outlined text-[32px] text-[#c0c9c0] mb-1">
                     inbox

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { Suspense, useState } from "react"
+import { Suspense, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 

@@ -356,10 +356,12 @@ export function OrderHistory({ orders: initialOrders }: OrderHistoryProps) {
                     type="button"
                     onClick={() => handleReorder(order)}
                     disabled={isPending}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#c0c9c0] bg-white hover:bg-[#f1ede6] text-[#1c1c17] text-xs font-semibold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#c0c9c0] bg-white hover:bg-[#f1ede6] text-[#1c1c17] text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-[15px]">refresh</span>
-                    <span>Order Again</span>
+                    <span className={`material-symbols-outlined text-[15px] ${isPending ? "animate-spin" : ""}`}>
+                      {isPending ? "progress_activity" : "refresh"}
+                    </span>
+                    <span>{isPending ? "Ordering..." : "Order Again"}</span>
                   </button>
                 </div>
 
@@ -399,9 +401,10 @@ export function OrderHistory({ orders: initialOrders }: OrderHistoryProps) {
                           <button
                             type="submit"
                             disabled={isPending}
-                            className="px-3 py-1 rounded-lg bg-[#033921] text-white text-xs font-semibold cursor-pointer"
+                            className="px-3 py-1 rounded-lg bg-[#033921] text-white text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1"
                           >
-                            Submit
+                            {isPending && <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>}
+                            <span>{isPending ? "Submitting..." : "Submit"}</span>
                           </button>
                           <button
                             type="button"

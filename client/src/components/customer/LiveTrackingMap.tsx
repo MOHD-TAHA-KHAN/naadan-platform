@@ -221,7 +221,7 @@ export function LiveTrackingMap({
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000"
     const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     })
 
     socket.on("connect", () => {

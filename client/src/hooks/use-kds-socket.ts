@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { io, Socket } from "socket.io-client"
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL && !process.env.NEXT_PUBLIC_SOCKET_URL.includes("3000")
+  process.env.NODE_ENV === "production"
     ? process.env.NEXT_PUBLIC_SOCKET_URL
     : "http://localhost:5000"
 
@@ -30,7 +30,9 @@ export function useKdsSocket(initialActiveCount: number) {
   useEffect(() => {
     const socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     })
     socketRef.current = socket
 

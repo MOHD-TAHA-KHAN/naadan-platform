@@ -1,11 +1,11 @@
 import { auth } from "@/auth"
-import { redirect } from "next/navigation"
+import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { notFound } from "next/navigation"
 import { CustomerHeader } from "@/components/customer/customer-header"
 import { TrackPoller } from "@/components/customer/track-poller"
 import { LiveTrackingMap } from "@/components/customer/LiveTrackingMap"
 import { getStatusLabel } from "@/lib/utils"
+import { KITCHEN_COORDS } from "@/lib/constants"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = { title: "Live Order Tracking | Naadan" }
@@ -44,8 +44,6 @@ const BANNER_MESSAGE: Record<string, string> = {
   DELIVERED: "Your feast has arrived! 🎉",
   CANCELLED: "This order was cancelled.",
 }
-
-import { KITCHEN_COORDS } from "@/lib/constants"
 
 export default async function TrackOrderPage({
   params,
