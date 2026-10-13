@@ -5,7 +5,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 const getDatasourceUrl = () => {
-  const url = process.env.DATABASE_URL
+  const url = process.env.DATABASE_URL || "postgresql://dummy:dummy@localhost:5432/dummy";
   if (!url) return undefined
   if (url.includes("connection_limit=")) return url
   const separator = url.includes("?") ? "&" : "?"
