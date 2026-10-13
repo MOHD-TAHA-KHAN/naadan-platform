@@ -9,7 +9,7 @@ build/
 
 client/.env
 server/.env
-
+.env
 client/.vscode/
 client/.agents/
 client/.claude/

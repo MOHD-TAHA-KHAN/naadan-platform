@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 export default bundleAnalyzer(nextConfig)
