@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cd ../server && npm install && npx prisma generate && cd ../client && next build",
     "build:analyze": "ANALYZE=true npm run build",
     "start": "next start",
     "lint": "eslint ."
