@@ -1,11 +1,10 @@
-import type { NextConfig } from "next"
-// import withBundleAnalyzer from "@next/bundle-analyzer"
-
-// const bundleAnalyzer = withBundleAnalyzer({
-//   enabled: process.env.ANALYZE === "true",
-// })
+import path from "path";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.join(__dirname, ".."),
+  },
   transpilePackages: ["@server"],
   images: {
     formats: ["image/avif", "image/webp"],
