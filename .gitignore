@@ -17,3 +17,5 @@ client/.gemini/
 client/.opencode/
 client/.cursor/
 client/.codex/
+
+client/prisma/
